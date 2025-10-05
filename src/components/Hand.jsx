@@ -9,15 +9,16 @@ export default function Hands({cards, title, handValue, isDealer = false, gameOv
     // Determine the value to display for the dealer's hand
     let displayValue = handValue;
     if (isDealer && !gameOver && cards.length > 1) {
+        // Only show value if it's the player's hand or the game is over
         displayValue = '?';
     }
 
     return (
         <div className="p-4 w-full">
-            <h2 className="text-2xl mb-2 text-center sm:text-left">
+            <h2 className="text-2xl mb-2 text-center text-white">
                 {title}: {displayValue}
             </h2>
-            <div className="flex justify-center sm:justify-start flex-wrap gap-2">
+            <div className="flex justify-center flex-wrap gap-2">
                 {cards.map((card, index) => {
                     // Hide the second card if it's the dealer's hand AND the game is NOT over.
                     const isHidden = isDealer && index === 1 && !gameOver;
@@ -26,5 +27,4 @@ export default function Hands({cards, title, handValue, isDealer = false, gameOv
             </div>
         </div>
     )
-
 }

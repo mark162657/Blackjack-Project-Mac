@@ -10,7 +10,6 @@ export default function Card({ card, isHidden = false }) {
     // Hidden Card (Outline-Only) Logic
     if (isHidden) {
         return (
-            // Full width, relative container for the dealer's card back
             <div className={`w-24 h-32 sm:w-28 sm:h-40 border-2 border-gray-400 rounded-xl shadow-lg m-1 ${dealtAnimationClass}`}>
                 {/* Outline only */}
             </div>
@@ -19,7 +18,6 @@ export default function Card({ card, isHidden = false }) {
 
     // Face-Up Card Logic (Absolute Positioning for Corner Alignment)
     return (
-        // Key Change: Add relative positioning to the main card container
         <div className={`w-24 h-32 sm:w-28 sm:h-40 bg-white border border-gray-300 text-slate-800 rounded-xl shadow-lg flex flex-col 
             items-center justify-center p-0 m-1 font-mono relative overflow-hidden ${dealtAnimationClass}`}>
 

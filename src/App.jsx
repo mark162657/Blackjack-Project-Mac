@@ -1,38 +1,73 @@
-// src/App.jsx
+// src/components/App.jsx
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { combinations } from "./assets/cardDeck.js";
-import Button from "./components/Button.jsx";
-import Hand from "./components/Hand.jsx";
+import Button from "./Button.jsx";
+import Hand from "./Hand.jsx";
+import { useSupabase } from './SupabaseContext'; // Import hook
 
-import './App.css'
+import './App.css';
 
-const STARTING_CHIPS = 500;
 const DEFAULT_BET = 10;
+const STARTING_CHIPS = 500; // Used as fallback if profile fetch fails
 
 function App() {
-    // New States for Chip/Betting
-    const [chips, setChips] = useState(STARTING_CHIPS);
-    const [currentBet, setCurrentBet] = useState(0);
+    const { supabase, session, user, loading: authLoading } = useSupabase(); // Access Supabase
 
-    // Existing Game States
+    // Game States
+    const [chips, setChips] = useState(STARTING_CHIPS); // Chips stored locally
+    const [currentBet, setCurrentBet] = useState(0);
     const [playerHand, setPlayerHand] = useState([]);
     const [dealerHand, setDealerHand] = useState([]);
     const [gameOver, setGameOver] = useState(false);
     const [result, setResult] = useState({type: "", message: ""});
-    const [isBetting, setIsBetting] = useState(true); // New phase state
+    const [isBetting, setIsBetting] = useState(true);
 
-    // Get random Card from the Deck (simplified - infinite deck)
+    // --- DATABASE FUNCTIONS (PLACEHOLDERS) ---
+
+    // ⚠️ Placeholder: Fetch chips on login
+    useEffect(() => {
+        if (user && !authLoading) {
+            const fetchProfile = async () => {
+                // In a real app, you'd fetch the user's chips from the 'profiles' table here
+                // For now, we'll initialize or use the default
+                // Example: const { data } = await supabase.from('profiles').select('chips').single();
+                // if (data) setChips(data.chips);
+                console.log("User logged in. Ready to fetch chips/history.");
+            };
+            fetchProfile();
+        }
+    }, [user, authLoading]);
+
+    // ⚠️ Placeholder: Save chips and game history after a hand
+    const saveGameResult = (finalResult, chipChange) => {
+        // In a real app, you'd insert a row into the 'game_history' table and update 'profiles'
+        console.log(`Saving game result: ${finalResult.type}, Chip Change: ${chipChange}`);
+
+        // Example update (uncomment and implement when table exists):
+        /*
+        if (user) {
+            supabase.from('profiles').update({ chips: chips + chipChange }).eq('id', user.id);
+            supabase.from('game_history').insert([{
+                user_id: user.id,
+                result: finalResult.type,
+                bet_amount: DEFAULT_BET,
+                chip_change: chipChange
+            }]);
+        }
+        */
+    };
+
+    // --- GAME LOGIC ---
+
     const getRandomCardFromDeck = () => {
         const randomIndex = Math.floor(Math.random() * combinations.length);
         return combinations[randomIndex];
     };
 
-    // Calculate hand value with proper Ace handling
     const calculateHandValue = (hand) => {
         let value = 0;
         let aceCount = 0;
-
         hand.forEach((card) => {
             if(card.rank === "J" || card.rank === "Q" || card.rank === "K") {
                 value += 10;
@@ -43,29 +78,23 @@ function App() {
                 value += parseInt(card.rank);
             }
         });
-
-        // Convert Aces from 11 to 1 if busting
         while(value > 21 && aceCount > 0) {
             value -= 10;
             aceCount -= 1;
         }
-
         return value;
     };
 
-    // Game Flow Step 1: Place Bet / Deal
     const startHand = () => {
         if (chips < DEFAULT_BET) {
-            setResult({ type: "error", message: "Not enough chips to bet! Please buy more chips." });
+            setResult({ type: "error", message: "Not enough chips to bet!" });
             return;
         }
 
-        // 1. Place the Bet
         setChips(prevChips => prevChips - DEFAULT_BET);
         setCurrentBet(DEFAULT_BET);
-        setIsBetting(false); // End betting phase
+        setIsBetting(false);
 
-        // 2. Initial Deal
         const initialPlayerHand = [getRandomCardFromDeck(), getRandomCardFromDeck()];
         const initialDealerHand = [getRandomCardFromDeck(), getRandomCardFromDeck()];
 
@@ -75,11 +104,9 @@ function App() {
         setGameOver(false);
         setResult({ type: "", message: "" });
 
-        // Check for natural blackjack immediately after deal
         const playerValue = calculateHandValue(initialPlayerHand);
 
         if (playerValue === 21) {
-            // Check dealer's full hand only if player has 21
             const dealerValue = calculateHandValue(initialDealerHand);
             if(dealerValue === 21) {
                 handleGameOver({ type: "push", message: "Both have Blackjack! Push (bet returned)." });
@@ -89,7 +116,6 @@ function App() {
         }
     };
 
-    // Deal card to the Player (Hit)
     const dealCardToPlayer = () => {
         if (gameOver || isBetting) return;
 
@@ -98,11 +124,10 @@ function App() {
         const playerValue = calculateHandValue(newHand);
 
         if(playerValue > 21) {
-            handleGameOver({ type: "dealer", message: "Player busts! Dealer wins." });
+            handleGameOver({ type: "dealer", message: "Player busts! Dealer loses." });
         }
     };
 
-    // Player stands - dealer plays by rules (Stand)
     const playerStand = () => {
         if (gameOver || isBetting) return;
 
@@ -110,7 +135,6 @@ function App() {
         let currentDealerHand = [...dealerHand];
         let dealerValue = calculateHandValue(currentDealerHand);
 
-        // Dealer must hit on 16 or less, stand on 17 or more
         while(dealerValue < 17) {
             currentDealerHand = [...currentDealerHand, getRandomCardFromDeck()];
             dealerValue = calculateHandValue(currentDealerHand);
@@ -118,58 +142,75 @@ function App() {
 
         setDealerHand(currentDealerHand);
 
-        // Determine winner
         const playerValue = calculateHandValue(playerHand);
+        let finalResult;
 
         if(dealerValue > 21) {
-            handleGameOver({ type: "player", message: "Dealer busts! Player wins!" });
+            finalResult = { type: "player", message: "Dealer busts! Player wins!" };
         } else if(dealerValue > playerValue) {
-            handleGameOver({ type: "dealer", message: "Dealer wins!" });
+            finalResult = { type: "dealer", message: "Dealer wins!" };
         } else if(playerValue > dealerValue) {
-            handleGameOver({ type: "player", message: "Player wins!" });
+            finalResult = { type: "player", message: "Player wins!" };
         } else {
-            handleGameOver({ type: "push", message: "Push! It's a tie." });
+            finalResult = { type: "push", message: "Push! It's a tie." };
         }
+
+        handleGameOver(finalResult);
     };
 
-    // Handle game end and chip update
-    const handleGameOver = (result) => {
+    const handleGameOver = (finalResult) => {
         let chipChange = 0;
 
-        if (result.type === "player") {
-            // Player Win (1:1 payout)
+        if (finalResult.type === "player") {
             chipChange = currentBet * 2;
-        } else if (result.type === "push") {
-            // Push (bet returned)
+        } else if (finalResult.type === "push") {
             chipChange = currentBet;
         }
 
-        setChips(prevChips => prevChips + chipChange);
+        setChips(prevChips => {
+            const newChips = prevChips + chipChange;
+            // IMPORTANT: Save to database here using chipChange logic
+            saveGameResult(finalResult, chipChange);
+            return newChips;
+        });
+
         setCurrentBet(0);
-        setResult(result);
+        setResult(finalResult);
         setGameOver(true);
         setIsBetting(false);
     };
 
-    // Reset Game
     const resetGame = () => {
         setPlayerHand([]);
         setDealerHand([]);
         setGameOver(false);
         setResult({type: "", message: ""});
-        setIsBetting(true); // Return to betting phase
+        setIsBetting(true);
         setCurrentBet(0);
     };
-
-    // src/App.jsx (Updated return block)
-
-// ... (All existing logic, state, and functions remain the same)
 
     const playerValue = calculateHandValue(playerHand);
     const dealerValue = gameOver ? calculateHandValue(dealerHand) : 0;
 
+    // --- UI/RENDER ---
+
+    // Add loading state for auth check
+    if (authLoading) {
+        return <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center text-3xl">Loading user session...</div>;
+    }
+
+    // Temporary Login/Logout buttons for testing Supabase integration
+    const handleLogin = () => {
+        // Example: Magic link login via email (replace with your preferred auth method)
+        supabase.auth.signInWithOAuth({ provider: 'google' });
+    };
+
+    const handleLogout = () => {
+        supabase.auth.signOut();
+        setChips(STARTING_CHIPS); // Reset local chips on logout
+    };
+
     return (
-        // Deeper, modern dark background: bg-slate-900 -> bg-gray-900
         <div className="bg-gray-900 text-white min-h-screen w-screen p-4 sm:p-8 flex flex-col items-center justify-between">
 
             {/* Top Section: Title & Chip/Bet */}
@@ -178,7 +219,19 @@ function App() {
                     BLACKJACK
                 </h1>
 
-                {/* Chip/Bet Display: Use modern segmented look */}
+                {/* Login/Logout Row */}
+                <div className='flex justify-between w-full max-w-lg mb-4'>
+                    {user ? (
+                        <p className="text-sm text-gray-400">Welcome, {user.email || 'Player'}!</p>
+                    ) : (
+                        <p className="text-sm text-gray-400">Please log in to save chips.</p>
+                    )}
+                    <Button bg_color={user ? "gray" : "blue"} onClick={user ? handleLogout : handleLogin}>
+                        {user ? "Logout" : "Login"}
+                    </Button>
+                </div>
+
+                {/* Chip/Bet Display */}
                 <div className="flex justify-center gap-4 mb-8 w-full">
                     <div className="p-3 rounded-xl border border-gray-700 bg-gray-800 shadow-lg flex-1 text-center">
                         <p className="text-sm text-gray-400">CHIPS</p>
@@ -231,7 +284,8 @@ function App() {
                         <Button
                             bg_color={isBetting ? "green" : "blue"}
                             onClick={isBetting ? startHand : resetGame}
-                            disabled={isBetting && chips < DEFAULT_BET}
+                            // Disable if not logged in OR not enough chips
+                            disabled={!user || (isBetting && chips < DEFAULT_BET)}
                         >
                             {isBetting ? `Place $${DEFAULT_BET} Bet / Deal` : "New Game"}
                         </Button>

@@ -1,11 +1,7 @@
-@import "tailwindcss";
-
 /* src/App.css */
 
 @import "tailwindcss";
 
-/*@tailwind base;*/
-/*@tailwind components;*/
 @tailwind utilities;
 
 /* Custom Keyframes for a Dealing/Sliding Animation */
@@ -25,7 +21,7 @@
     animation: slideIn 0.3s ease-out forwards;
 }
 
-/* Optional: Fade in for the result banner */
+/* Fade in for the result banner */
 @keyframes fadeInDown {
     from {
         opacity: 0;
@@ -41,7 +37,12 @@
     animation: fadeInDown 0.5s ease-out;
 }
 
-/* Optional: Slow pulse for the bet chip display */
+/* Slow pulse for the bet chip display */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
 .animate-pulse-slow {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

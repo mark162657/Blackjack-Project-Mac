@@ -1,7 +1,6 @@
 // src/components/Button.jsx
 
 const colorClasses = {
-    // Defined Tailwind classes for safe usage
     "green": "bg-green-600 hover:bg-green-700 active:bg-green-800",
     "red": "bg-red-700 hover:bg-red-800 active:bg-red-900",
     "blue": "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
@@ -19,12 +18,12 @@ export default function Button({ children, onClick, bg_color = "blue", disabled 
             className={`${className} 
                        text-white 
                        font-semibold 
-                       uppercase /* Added: Modern look */
-                       px-8 py-3 /* Increased padding for better tap targets */
-                       rounded-full /* Rounded buttons for a modern look */
+                       uppercase 
+                       px-8 py-3 
+                       rounded-full 
                        shadow-xl 
                        transform 
-                       hover:scale-105 /* Subtle hover animation */
+                       hover:scale-105 
                        transition 
                        duration-200 
                        ease-in-out
