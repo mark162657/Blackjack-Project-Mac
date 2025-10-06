@@ -1,5 +1,3 @@
-// src/components/App.jsx
-
 import { useState, useEffect } from 'react';
 import { combinations } from "./assets/cardDeck.js";
 import Button from "./components/Button.jsx";
@@ -169,8 +167,8 @@ function App() {
         }
     };
 
-    // ⬅️ UPDATED: Made playerStand async to introduce delays for dealer action
-    const playerStand = async () => {
+    // ⬅️ UPDATED: Removed 'async' and all delay logic (setTimeout/await) for instant dealer play.
+    const playerStand = () => {
         if (gameOver || isBetting) return;
 
         // Clear suggestion after taking an action
@@ -179,30 +177,24 @@ function App() {
         // 1. Reveal the dealer's hidden card immediately by setting gameOver=true
         setGameOver(true);
 
-        // 2. Wait a moment (e.g., 1 second) for the player to see the revealed card
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 2. Dealer logic: Calculate all dealer hits synchronously for an instant result.
+        let finalDealerHand = [...dealerHand];
+        let dealerValue = calculateHandValue(finalDealerHand);
 
-        let currentDealerHand = dealerHand;
-        let dealerValue = calculateHandValue(currentDealerHand);
-
-        // 3. Dealer must HIT until value is 17 or more (S17 rule)
+        // Dealer must HIT until value is 17 or more (S17 rule)
         while (dealerValue < 17) {
-            // Delay before dealing the next card
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
             const newCard = getRandomCardFromDeck();
-            currentDealerHand = [...currentDealerHand, newCard];
-            setDealerHand([...currentDealerHand]); // Update state to show the new card being dealt
-            dealerValue = calculateHandValue(currentDealerHand);
+            finalDealerHand = [...finalDealerHand, newCard];
+            dealerValue = calculateHandValue(finalDealerHand);
         }
 
-        // 4. Wait a final moment before declaring the result
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Update the state with the final dealer hand instantly
+        setDealerHand(finalDealerHand);
 
         const playerValue = calculateHandValue(playerHand);
         let finalResult;
 
-        // 5. Determine the outcome
+        // 3. Determine the outcome
         if(dealerValue > 21) {
             finalResult = { type: "player", message: "Dealer busts! Player wins!" };
         } else if(dealerValue > playerValue) {
@@ -213,7 +205,8 @@ function App() {
             finalResult = { type: "push", message: "Push! It's a tie." };
         }
 
-        // 6. Finalize the game state
+        // 4. Finalize the game state
+        // This will happen immediately after the state updates above.
         handleGameOver(finalResult);
     };
 
