@@ -1,9 +1,10 @@
 # ♠️ Blackjack Game
 
-**Deployment Link:** https://blackjack-project-mac-marks-projects-34165e16.vercel.app/
+**Deployment Link:** https://blackjack-project-mac.vercel.app/
 
 A modern, web-based **Blackjack** game built with **React** and **Supabase**.  
 This application features a sleek, *glassmorphism*-inspired UI and allows users to play, save their progress, and track their game history.
+Part of my preference, the game utilised some glass design. Was trying to implement liquid glass, but not succeeded, at least until now.
 
 ---
 
