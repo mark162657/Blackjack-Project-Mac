@@ -453,7 +453,7 @@ function App() {
             {showHistory && <GameHistory onClose={() => setShowHistory(false)} />}
 
             {/* Adjusted padding here for mobile-friendliness */}
-            <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-24 sm:pt-28 pb-48 sm:pb-56">
+            <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-28 pb-56">
 
                 {/* Conditionally render welcome/placeholder screen or the active game */}
                 {playerHand.length === 0 ? (
@@ -467,7 +467,7 @@ function App() {
                             </div>
                         </div>
 
-                        <div className="my-8 w-full max-w-md text-center min-h-[80px]">
+                        <div className="my-4 w-full max-w-md text-center min-h-[80px]">
                             {!user && (
                                 <div className="text-center animate-fade-in-down">
                                     <h1 className="text-4xl font-extrabold text-amber-300">Welcome to Blackjack!</h1>
@@ -489,7 +489,7 @@ function App() {
                     <>
                         <Hand cards={dealerHand} title="Dealer" handValue={dealerValue} isDealer={true} gameOver={gameOver} />
 
-                        <div className="my-8 w-full max-w-md text-center min-h-[80px]">
+                        <div className="my-4 w-full max-w-md text-center min-h-[80px]">
                             {gameOver && result.message && <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-2xl ${result.type.includes('win') || result.type === 'blackjack' ? 'bg-green-500/50 border-green-400/80' : result.type === 'loss' ? 'bg-red-500/50 border-red-400/80' : 'bg-amber-500/50 border-amber-400/80'} border backdrop-blur-md`}>{result.message}</div>}
                             {advisorSuggestion && !gameOver && <div className="mt-4 p-3 bg-blue-900/50 backdrop-blur-md border border-blue-400/50 rounded-lg text-sm text-blue-200 shadow-lg"><span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}</div>}
                             {authMessage.message && authMessage.type === 'error' && <div className={`mt-4 p-4 rounded-lg text-base font-medium bg-red-800/80`}>{authMessage.message}</div>}
@@ -573,5 +573,4 @@ function App() {
 }
 
 export default App;
-
 
