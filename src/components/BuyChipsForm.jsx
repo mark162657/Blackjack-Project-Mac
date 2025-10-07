@@ -53,9 +53,13 @@ export default function BuyChipsForm({ onClose, onRefill, currentChips, isLogged
                         <Button bg_color="gray" onClick={() => setRefillAmount(2000)} className="!px-3 !py-1 !text-sm">+ $2,000</Button>
                         <Button bg_color="gray" onClick={() => setRefillAmount(10000)} className="!px-3 !py-1 !text-sm">+ $10,000</Button>
                     </div>
-                    <Button onClick={handleRefillClick} bg_color="green" disabled={loading || refillAmount < 1} className="w-full py-3 text-xl">
-                        {loading ? 'Adding Chips...' : `Add $${refillAmount.toLocaleString()} Chips`}
-                    </Button>
+
+                    {/* Centered Button */}
+                    <div className="flex justify-center pt-2">
+                        <Button onClick={handleRefillClick} bg_color="green" disabled={loading || refillAmount < 1} className="!w-auto py-3 text-xl">
+                            {loading ? 'Adding Chips...' : `Add $${refillAmount.toLocaleString()} Chips`}
+                        </Button>
+                    </div>
                 </div>
 
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white" disabled={loading}>

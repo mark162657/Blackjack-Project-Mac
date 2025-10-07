@@ -4,7 +4,20 @@
 
 @tailwind utilities;
 
-/* Apply a background gradient to the entire page */
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield !important;
+}
+
+/* --- Existing Styles --- */
+
+
 body {
     background-color: #0f172a; /* fallback */
     background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%);
@@ -60,3 +73,4 @@ body {
 .animate-pulse-slow {
     animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+

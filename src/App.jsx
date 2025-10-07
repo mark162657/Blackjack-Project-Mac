@@ -306,46 +306,42 @@ function App() {
     };
 
     const handleGameOver = (playerValue, dealerValue, playerHasBlackjack, dealerHasBlackjack) => {
-        let newChips = chips + currentBet;
-        let resultType = "";
-        let message = "";
+        let finalChips = chips;
+        let resultType, message;
 
         if (playerHasBlackjack && dealerHasBlackjack) {
             resultType = 'push';
-            message = "Dealer and Player both have Blackjack. It's a PUSH!";
+            finalChips += currentBet;
+            message = "Push!";
         } else if (playerHasBlackjack) {
-            const payout = calculatePayout('blackjack', currentBet);
-            newChips += payout;
             resultType = 'blackjack';
-            message = `BLACKJACK! You won $${payout}!`;
+            const payout = calculatePayout('blackjack', currentBet);
+            finalChips += currentBet + payout;
+            message = `Blackjack! You won $${payout}!`;
         } else if (dealerHasBlackjack) {
-            newChips -= currentBet;
             resultType = 'loss';
-            message = `Dealer Blackjack! You lost $${currentBet}.`;
+            message = "Dealer Blackjack!";
         } else if (playerValue > 21) {
-            newChips -= currentBet;
             resultType = 'loss';
-            message = `Player Busts! You lost $${currentBet}.`;
+            message = "Bust!";
         } else if (dealerValue > 21) {
-            newChips += currentBet;
             resultType = 'win';
-            message = `Dealer Busts! You won $${currentBet}!`;
+            finalChips += currentBet * 2;
+            message = "Dealer Busts!";
         } else if (playerValue > dealerValue) {
-            newChips += currentBet;
             resultType = 'win';
-            message = `Player wins! You won $${currentBet}!`;
+            finalChips += currentBet * 2;
+            message = "You Win!";
         } else if (playerValue < dealerValue) {
-            newChips -= currentBet;
             resultType = 'loss';
-            message = `Dealer wins! You lost $${currentBet}.`;
+            message = "You Lose!";
         } else {
             resultType = 'push';
-            message = "It's a PUSH! Bet returned.";
+            finalChips += currentBet;
+            message = "Push!";
         }
-
-        saveGameHistory(currentBet, resultType, newChips);
-        updateProfileChips(newChips);
-
+        saveGameHistory(currentBet, resultType, finalChips);
+        updateProfileChips(finalChips);
         setResult({ type: resultType, message: message });
         setGameOver(true);
         setCurrentBet(0);
@@ -386,7 +382,6 @@ function App() {
     const dealerValue = calculateHandValue(dealerHand);
     const displayBetAmount = isBetting ? tempBetInput : currentBet;
 
-    // Condition to check if the middle message container should be visible
     const showMessageContainer = gameOver || (advisorSuggestion && !gameOver) || (authMessage.message && authMessage.type === 'error');
 
     return (
@@ -396,7 +391,7 @@ function App() {
                 onSignup={() => setShowAuthForm(true)}
                 onLogout={async () => await supabase.auth.signOut()}
                 onBuyChips={() => setShowBuyChipsForm(true)}
-                onShowHistory={() => setShowHistory(true)} // <-- NEW PROP
+                onShowHistory={() => setShowHistory(true)}
                 chips={chips}
             />
 
@@ -407,7 +402,7 @@ function App() {
             <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-24 pb-48">
                 <Hand cards={dealerHand} title="Dealer" handValue={dealerValue} isDealer={true} gameOver={gameOver} />
                 {showMessageContainer && (
-                    <div className="my-6 w-full max-w-md text-center">
+                    <div className="my-10 w-full max-w-md text-center">
                         {gameOver && result.message && <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-2xl ${result.type.includes('win') || result.type === 'blackjack' ? 'bg-green-500/50 border-green-400/80' : result.type === 'loss' ? 'bg-red-500/50 border-red-400/80' : 'bg-amber-500/50 border-amber-400/80'} border backdrop-blur-md`}>{result.message}</div>}
                         {advisorSuggestion && !gameOver && <div className="mt-4 p-3 bg-blue-900/50 backdrop-blur-md border border-blue-400/50 rounded-lg text-sm text-blue-200 shadow-lg"><span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}</div>}
                         {authMessage.message && authMessage.type === 'error' && <div className={`mt-4 p-4 rounded-lg text-base font-medium bg-red-800/80`}>{authMessage.message}</div>}
@@ -417,32 +412,63 @@ function App() {
             </main>
 
             <div className="w-full fixed bottom-0 z-40 p-4">
-                <div className="max-w-7xl mx-auto h-auto bg-slate-900/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/30 p-3 sm:p-4 border border-white/10">
+                <div className="max-w-7xl mx-auto h-auto bg-slate-900/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/30 p-3 sm:p-4 border border-white/10 relative">
+
+                    {!isBetting && !gameOver && user && (
+                        <Button
+                            onClick={handleAdvisorClick}
+                            bg_color="advisor"
+                            className="!absolute !w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold top-1/2 right-4 sm:right-6 -translate-y-1/3"
+                        >
+                            ?
+                        </Button>
+                    )}
+
                     <div className="text-center mb-4">
                         <p className="text-lg text-slate-300 font-semibold">{isBetting ? 'Next Bet' : 'Current Bet'}</p>
                         <span className={`text-4xl font-extrabold tracking-wider ${user && displayBetAmount > 0 ? 'text-amber-300 animate-pulse-slow' : 'text-slate-500'}`}>
                             ${user ? displayBetAmount.toLocaleString() : '0'}
                         </span>
                     </div>
+
                     {!user ? (
                         <div className="text-center p-4 bg-black/20 rounded-xl"><h3 className="text-xl font-bold text-amber-300">Please Log In to Play</h3><p className="text-slate-300 mt-1">You need an account to place a bet.</p></div>
                     ) : isBetting ? (
-                        <div className="flex flex-col items-center gap-3 max-w-sm mx-auto p-4 bg-black/20 rounded-xl shadow-inner">
-                            <label htmlFor="bet-input" className="text-sm font-semibold text-slate-300">Enter Bet Amount (Min $1, Max ${chips.toLocaleString()})</label>
-                            <input id="bet-input" type="number" value={tempBetInput} onChange={(e) => { let v = parseInt(e.target.value, 10); setTempBetInput(isNaN(v) || v < 0 ? 0 : v > chips ? chips : v); }} onBlur={() => { if (chips > 0 && tempBetInput < 1) setTempBetInput(DEFAULT_BET); }} min="1" max={chips} className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-slate-800/80 border-2 border-amber-500/70 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                            <Button bg_color="green" onClick={startHand} disabled={displayBetAmount <= 0 || displayBetAmount > chips} className="w-full text-xl py-3">Deal</Button>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto p-4 bg-black/20 rounded-xl shadow-inner">
+                            <div className="flex-grow w-full sm:w-auto text-center">
+                                <label htmlFor="bet-input" className="text-sm font-semibold text-slate-300 block mb-2">
+                                    Enter Bet Amount
+                                </label>
+                                <input
+                                    id="bet-input"
+                                    type="number"
+                                    value={tempBetInput}
+                                    onChange={(e) => { let v = parseInt(e.target.value, 10); setTempBetInput(isNaN(v) || v < 0 ? 0 : v > chips ? chips : v); }}
+                                    onBlur={() => { if (chips > 0 && tempBetInput < 1) setTempBetInput(DEFAULT_BET); }}
+                                    min="1"
+                                    max={chips}
+                                    className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-slate-800/80 border-2 border-amber-500/70 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                />
+                            </div>
+                            <Button
+                                bg_color="green"
+                                onClick={startHand}
+                                disabled={displayBetAmount <= 0 || displayBetAmount > chips}
+                                className="w-full sm:w-auto text-xl self-center sm:self-end mt-2 sm:mt-0"
+                            >
+                                Deal
+                            </Button>
                         </div>
                     ) : gameOver ? (
                         <div className="flex justify-center gap-4 max-w-xl mx-auto"><Button bg_color="green" onClick={resetGame}>New Hand</Button></div>
                     ) : (
-                        <div className="flex justify-center gap-4 max-w-xl mx-auto">
+                        <div className="flex justify-center gap-4 max-w-sm mx-auto">
                             <Button onClick={playerHit}>Hit</Button>
-                            <Button onClick={handleAdvisorClick} bg_color="advisor" className="!w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold">?</Button>
                             <Button bg_color="red" onClick={playerStand}>Stand</Button>
                         </div>
                     )}
                 </div>
-            </div>a
+            </div>
         </div>
     );
 }

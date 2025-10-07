@@ -57,7 +57,11 @@ export default function GameHistory({ onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900/60 p-6 rounded-2xl shadow-2xl w-full max-w-2xl border border-white/20 animate-fade-in-down flex flex-col" style={{ maxHeight: '80vh' }}>
+            {/* --- STYLE CHANGES APPLIED TO THIS DIV --- */}
+            <div
+                className="bg-gradient-to-b from-slate-900/70 to-slate-900/50 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-2xl border border-white/20 animate-fade-in-down flex flex-col"
+                style={{ maxHeight: '80vh' }}
+            >
                 <h2 className="text-3xl font-extrabold text-blue-300 mb-4 text-center">
                     Recent Game History
                 </h2>

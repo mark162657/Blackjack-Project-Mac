@@ -12,10 +12,16 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, onShow
             <nav className="
                 max-w-7xl mx-auto h-16 sm:h-20 p-3 sm:p-4
                 flex justify-between items-center
-                bg-slate-900/40 backdrop-blur-lg
+
+                {/* --- STYLE CHANGES START HERE --- */}
+                bg-gradient-to-b from-slate-900/70 to-slate-900/50 {/* Subtle gradient for depth */}
+                backdrop-blur-lg
                 rounded-2xl sm:rounded-3xl
                 shadow-2xl shadow-black/30
-                border border-white/10 transition-all duration-300">
+                border border-white/20 {/* Slightly brighter border */}
+                {/* --- STYLE CHANGES END HERE --- */}
+
+                transition-all duration-300">
 
                 <div className="flex items-center space-x-6">
                     <span className="text-3xl font-extrabold text-white tracking-widest uppercase cursor-pointer" style={{textShadow: '0 2px 10px rgba(251, 191, 36, 0.5)'}}>
@@ -41,22 +47,22 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, onShow
                 <div className="flex items-center space-x-3">
                     {user ? (
                         <>
-                            <Button onClick={onShowHistory} bg_color="gray" className="!px-4 !py-2 !rounded-lg !text-sm hidden sm:block">
+                            <Button onClick={onShowHistory} bg_color="gray" className="hidden sm:block">
                                 History
                             </Button>
                             <span className="hidden md:inline text-sm text-slate-300 truncate max-w-xs p-2 rounded-lg bg-black/20">
                                 {user.email}
                             </span>
-                            <Button bg_color="gray" onClick={onLogout} className="!px-4 !py-2 !rounded-lg !text-sm">
+                            <Button bg_color="gray" onClick={onLogout}>
                                 Logout
                             </Button>
                         </>
                     ) : (
                         <>
-                            <Button bg_color="gray" onClick={onLogin} className="!px-4 !py-2 !rounded-lg !text-sm">
+                            <Button bg_color="gray" onClick={onLogin}>
                                 Log In
                             </Button>
-                            <Button bg_color="blue" onClick={onSignup} className="hidden sm:block !px-4 !py-2 !rounded-lg !text-sm">
+                            <Button bg_color="blue" onClick={onSignup} className="hidden sm:block">
                                 Sign Up
                             </Button>
                         </>
