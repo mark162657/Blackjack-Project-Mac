@@ -5,7 +5,7 @@ import Hand from "./components/Hand.jsx";
 import Navbar from "./components/Navbar.jsx";
 import AuthForm from "./components/AuthForm.jsx";
 import BuyChipsForm from "./components/BuyChipsForm.jsx";
-import GameHistory from "./components/GameHistory.jsx"; // <-- NEW IMPORT
+import GameHistory from "./components/GameHistory.jsx";
 import { useSupabase } from './helper/supabaseContext.jsx';
 
 import './App.css'; // For custom animations and Tailwind imports
@@ -390,173 +390,59 @@ function App() {
     const showMessageContainer = gameOver || (advisorSuggestion && !gameOver) || (authMessage.message && authMessage.type === 'error');
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+        <div className="min-h-screen bg-transparent text-white flex flex-col font-sans">
             <Navbar
-                onLogin={() => {
-                    setShowAuthForm(true);
-                    setAuthMessage({ type: "prompt", message: "Choose Login or Sign Up." });
-                }}
-                onSignup={() => {
-                    setShowAuthForm(true);
-                    setAuthMessage({ type: "prompt", message: "Choose Login or Sign Up." });
-                }}
-                onLogout={async () => {
-                    const { error } = await supabase.auth.signOut();
-                    if (!error) {
-                        setAuthMessage({ type: "success", message: "You have been logged out." });
-                    } else {
-                        setAuthMessage({ type: "error", message: "Logout failed: " + error.message });
-                    }
-                }}
-                onBuyChips={() => {
-                    setShowBuyChipsForm(true);
-                    setAuthMessage({ type: "prompt", message: "Buy or reset your chips here." });
-                }}
-                onShowHistory={() => setShowHistory(true)} // <-- NEW PROP FOR NAVBAR
+                onLogin={() => setShowAuthForm(true)}
+                onSignup={() => setShowAuthForm(true)}
+                onLogout={async () => await supabase.auth.signOut()}
+                onBuyChips={() => setShowBuyChipsForm(true)}
+                onShowHistory={() => setShowHistory(true)} // <-- NEW PROP
                 chips={chips}
             />
 
             {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} />}
-
-            {showBuyChipsForm && (
-                <BuyChipsForm
-                    onClose={() => setShowBuyChipsForm(false)}
-                    onRefill={refillChips}
-                    currentChips={chips}
-                    isLoggedIn={!!user}
-                />
-            )}
-
-            {showHistory && <GameHistory onClose={() => setShowHistory(false)} />} {/* <-- RENDER HISTORY MODAL */}
-
+            {showBuyChipsForm && <BuyChipsForm onClose={() => setShowBuyChipsForm(false)} onRefill={refillChips} currentChips={chips} isLoggedIn={!!user} />}
+            {showHistory && <GameHistory onClose={() => setShowHistory(false)} />}
 
             <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-24 pb-48">
-
-                <Hand
-                    cards={dealerHand}
-                    title="Dealer"
-                    handValue={dealerValue}
-                    isDealer={true}
-                    gameOver={gameOver}
-                />
-
-                {/* This container only renders if there's a message, fixing the initial layout gap */}
+                <Hand cards={dealerHand} title="Dealer" handValue={dealerValue} isDealer={true} gameOver={gameOver} />
                 {showMessageContainer && (
                     <div className="my-6 w-full max-w-md text-center">
-                        {gameOver && result.message && (
-                            <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-xl sm:text-2xl 
-                                ${result.type === 'win' || result.type === 'blackjack' ? 'bg-green-600' :
-                                result.type === 'loss' ? 'bg-red-600' : 'bg-amber-500'}
-                                text-white transition duration-500`}>
-                                {result.message}
-                            </div>
-                        )}
-
-                        {advisorSuggestion && !gameOver && (
-                            <div className="mt-4 p-3 bg-blue-800/80 rounded-lg text-sm text-blue-200 shadow-lg">
-                                <span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}
-                            </div>
-                        )}
-
-                        {authMessage.message && authMessage.type === 'error' && (
-                            <div className={`mt-4 p-4 rounded-lg text-base font-medium bg-red-700/80 text-white`}>
-                                {authMessage.message}
-                            </div>
-                        )}
+                        {gameOver && result.message && <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-2xl ${result.type.includes('win') || result.type === 'blackjack' ? 'bg-green-500/50 border-green-400/80' : result.type === 'loss' ? 'bg-red-500/50 border-red-400/80' : 'bg-amber-500/50 border-amber-400/80'} border backdrop-blur-md`}>{result.message}</div>}
+                        {advisorSuggestion && !gameOver && <div className="mt-4 p-3 bg-blue-900/50 backdrop-blur-md border border-blue-400/50 rounded-lg text-sm text-blue-200 shadow-lg"><span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}</div>}
+                        {authMessage.message && authMessage.type === 'error' && <div className={`mt-4 p-4 rounded-lg text-base font-medium bg-red-800/80`}>{authMessage.message}</div>}
                     </div>
                 )}
-
-
-                <Hand
-                    cards={playerHand}
-                    title="Player"
-                    handValue={playerValue}
-                    isDealer={false}
-                    gameOver={gameOver}
-                />
-
+                <Hand cards={playerHand} title="Player" handValue={playerValue} isDealer={false} gameOver={gameOver} />
             </main>
 
             <div className="w-full fixed bottom-0 z-40 p-4">
-                <div className="max-w-7xl mx-auto h-auto
-                            bg-gray-800/90 backdrop-blur-md
-                            rounded-2xl sm:rounded-3xl
-                            shadow-2xl shadow-black/80
-                            p-3 sm:p-4
-                            border border-gray-700/50 transition duration-300 ease-in-out">
-
+                <div className="max-w-7xl mx-auto h-auto bg-slate-900/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/30 p-3 sm:p-4 border border-white/10">
                     <div className="text-center mb-4">
-                        <p className="text-lg text-gray-400 font-semibold">
-                            {isBetting ? 'Next Bet' : 'Current Bet'}
-                        </p>
-                        <span className={`text-4xl font-extrabold tracking-wider 
-                            ${(user && displayBetAmount > 0) ? 'text-amber-400 animate-pulse-slow' : 'text-gray-500'}`}
-                        >
+                        <p className="text-lg text-slate-300 font-semibold">{isBetting ? 'Next Bet' : 'Current Bet'}</p>
+                        <span className={`text-4xl font-extrabold tracking-wider ${user && displayBetAmount > 0 ? 'text-amber-300 animate-pulse-slow' : 'text-slate-500'}`}>
                             ${user ? displayBetAmount.toLocaleString() : '0'}
                         </span>
                     </div>
-
-                    {/* NEW: Check if user is logged in before showing controls */}
                     {!user ? (
-                        <div className="text-center p-4 bg-gray-700/50 rounded-xl">
-                            <h3 className="text-xl font-bold text-amber-400">Please Log In to Play</h3>
-                            <p className="text-gray-300 mt-1">You need to be logged in to place a bet.</p>
-                        </div>
+                        <div className="text-center p-4 bg-black/20 rounded-xl"><h3 className="text-xl font-bold text-amber-300">Please Log In to Play</h3><p className="text-slate-300 mt-1">You need an account to place a bet.</p></div>
                     ) : isBetting ? (
-                        <div className="flex flex-col items-center gap-3 max-w-sm mx-auto p-4 bg-gray-700/50 rounded-xl shadow-inner">
-                            <label htmlFor="bet-input" className="text-sm font-semibold text-gray-300">
-                                Enter Bet Amount (Min $1, Max ${chips.toLocaleString()})
-                            </label>
-                            <input
-                                id="bet-input"
-                                type="number"
-                                value={tempBetInput}
-                                onChange={(e) => {
-                                    let value = parseInt(e.target.value, 10);
-                                    if (isNaN(value) || value < 0) value = 0;
-                                    if (value > chips) value = chips;
-                                    setTempBetInput(value);
-                                    setAuthMessage({ type: "", message: "" });
-                                }}
-                                onBlur={() => {
-                                    if (chips > 0 && tempBetInput < 1) setTempBetInput(DEFAULT_BET);
-                                    if (chips === 0) setTempBetInput(0);
-                                }}
-                                min="1"
-                                max={chips}
-                                className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-gray-900 border-2 border-amber-500 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition duration-200"
-                                placeholder={`$${DEFAULT_BET}`}
-                            />
-                            <Button
-                                bg_color="green"
-                                onClick={startHand}
-                                disabled={displayBetAmount <= 0 || displayBetAmount > chips || chips === 0}
-                                className="w-full text-xl py-3"
-                            >
-                                Deal
-                            </Button>
+                        <div className="flex flex-col items-center gap-3 max-w-sm mx-auto p-4 bg-black/20 rounded-xl shadow-inner">
+                            <label htmlFor="bet-input" className="text-sm font-semibold text-slate-300">Enter Bet Amount (Min $1, Max ${chips.toLocaleString()})</label>
+                            <input id="bet-input" type="number" value={tempBetInput} onChange={(e) => { let v = parseInt(e.target.value, 10); setTempBetInput(isNaN(v) || v < 0 ? 0 : v > chips ? chips : v); }} onBlur={() => { if (chips > 0 && tempBetInput < 1) setTempBetInput(DEFAULT_BET); }} min="1" max={chips} className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-slate-800/80 border-2 border-amber-500/70 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                            <Button bg_color="green" onClick={startHand} disabled={displayBetAmount <= 0 || displayBetAmount > chips} className="w-full text-xl py-3">Deal</Button>
                         </div>
                     ) : gameOver ? (
-                        <div className="flex justify-center gap-4 max-w-xl mx-auto">
-                            <Button bg_color="green" onClick={resetGame}>New Hand</Button>
-                        </div>
+                        <div className="flex justify-center gap-4 max-w-xl mx-auto"><Button bg_color="green" onClick={resetGame}>New Hand</Button></div>
                     ) : (
                         <div className="flex justify-center gap-4 max-w-xl mx-auto">
                             <Button onClick={playerHit}>Hit</Button>
-
-                            <Button
-                                onClick={handleAdvisorClick}
-                                bg_color="advisor"
-                                className="!w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold !text-white !shadow-md hover:!shadow-lg !transform hover:!scale-110 transition duration-200 flex items-center justify-center self-center"
-                            >
-                                ?
-                            </Button>
-
+                            <Button onClick={handleAdvisorClick} bg_color="advisor" className="!w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold">?</Button>
                             <Button bg_color="red" onClick={playerStand}>Stand</Button>
                         </div>
                     )}
                 </div>
-            </div>
+            </div>a
         </div>
     );
 }

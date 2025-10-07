@@ -1,15 +1,13 @@
 // src/components/Button.jsx
 
 const colorClasses = {
-    "green": "bg-green-600 hover:bg-green-700 active:bg-green-800",
-    "red": "bg-red-700 hover:bg-red-800 active:bg-red-900",
-    "blue": "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
-    "gray": "bg-gray-500 hover:bg-gray-600 active:bg-gray-700",
-    // Adding a dedicated color for the less obvious advisor button
-    "advisor": "bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-800 text-indigo-200"
+    "green": "bg-green-500/60 hover:bg-green-500/80 border-green-400/80",
+    "red": "bg-red-500/60 hover:bg-red-500/80 border-red-400/80",
+    "blue": "bg-blue-500/60 hover:bg-blue-500/80 border-blue-400/80",
+    "gray": "bg-slate-600/60 hover:bg-slate-600/80 border-slate-500/80",
+    "advisor": "bg-indigo-500/60 hover:bg-indigo-500/80 border-indigo-400/80 text-indigo-100"
 };
 
-// Added className prop to allow for style overrides and additions
 export default function Button({ children, onClick, bg_color = "blue", disabled = false, className = '' }) {
 
     const baseClasses = colorClasses[bg_color] || colorClasses["blue"];
@@ -18,22 +16,13 @@ export default function Button({ children, onClick, bg_color = "blue", disabled 
         <button
             onClick={onClick}
             disabled={disabled}
-            // Default styling is slightly toned down to allow easier overrides.
-            className={`${baseClasses} 
-                       text-white 
-                       font-semibold 
-                       uppercase 
-                       px-6 py-2 
-                       rounded-full 
-                       shadow-lg 
-                       transform 
-                       hover:scale-105 
-                       transition 
-                       duration-200 
-                       ease-in-out
-                       w-full sm:w-auto my-1
-                       ${disabled ? 'opacity-40 cursor-not-allowed shadow-none' : ''}
-                       ${className}
+            className={`
+                ${baseClasses} 
+                text-white font-semibold uppercase px-6 py-2 rounded-full shadow-lg
+                transform hover:scale-105 transition duration-200 ease-in-out
+                w-full sm:w-auto my-1 border
+                ${disabled ? 'opacity-40 cursor-not-allowed shadow-none hover:scale-100' : 'shadow-black/30'}
+                ${className}
             `}
         >
             {children}

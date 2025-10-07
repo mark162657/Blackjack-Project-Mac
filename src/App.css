@@ -4,6 +4,14 @@
 
 @tailwind utilities;
 
+/* Apply a background gradient to the entire page */
+body {
+    background-color: #0f172a; /* fallback */
+    background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%);
+    background-attachment: fixed;
+}
+
+
 /* Custom Keyframes for a Dealing/Sliding Animation */
 @keyframes slideIn {
     from {
@@ -39,10 +47,16 @@
 
 /* Slow pulse for the bet chip display */
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 8px currentColor;
+    }
+    50% {
+        opacity: 0.8;
+        text-shadow: none;
+    }
 }
 
 .animate-pulse-slow {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
