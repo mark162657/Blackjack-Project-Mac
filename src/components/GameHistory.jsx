@@ -1,9 +1,17 @@
-// src/components/GameHistory.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../helper/supabaseContext';
 
-// Helper to format the result text and color
+// ======================================================================================
+// Helper Functions
+// ======================================================================================
+
+/**
+ * Formats the game result with appropriate text and color coding.
+ * @param {string} resultType - The result of the game (e.g., 'win', 'loss').
+ * @param {number} payout - The amount won or lost.
+ * @returns {JSX.Element} A span element styled based on the result.
+ */
+
 const formatResult = (resultType, payout) => {
     const style = {
         win: 'text-green-400',
@@ -20,13 +28,23 @@ const formatResult = (resultType, payout) => {
     return <span className={`font-bold ${style[resultType] || ''}`}>{text[resultType] || resultType}</span>;
 };
 
+
+// ======================================================================================
+// Game History Component
+// ======================================================================================
 export default function GameHistory({ onClose }) {
     const { supabase, user } = useSupabase();
+
+    // --- Component State ---
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // --- Data Fetching Effect ---
     useEffect(() => {
+        /**
+         * Fetches the last 25 game records for the current user from the database.
+         */
         const fetchHistory = async () => {
             if (!user) {
                 setError("You must be logged in to view history.");
@@ -53,11 +71,12 @@ export default function GameHistory({ onClose }) {
         };
 
         fetchHistory();
-    }, [supabase, user]);
+    }, [supabase, user]); // Reruns if the user or supabase client changes
 
+    // --- Render Logic ---
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            {/* --- STYLE CHANGES APPLIED TO THIS DIV --- */}
+            {/* Modal Container */}
             <div
                 className="bg-gradient-to-b from-slate-900/70 to-slate-900/50 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-2xl border border-white/20 animate-fade-in-down flex flex-col"
                 style={{ maxHeight: '80vh' }}
@@ -65,6 +84,8 @@ export default function GameHistory({ onClose }) {
                 <h2 className="text-3xl font-extrabold text-blue-300 mb-4 text-center">
                     Recent Game History
                 </h2>
+
+                {/* Scrollable History List */}
                 <div className="flex-grow overflow-y-auto pr-2">
                     {loading && <p className="text-center text-slate-400">Loading history...</p>}
                     {error && <p className="text-center text-red-400">{error}</p>}
@@ -87,6 +108,7 @@ export default function GameHistory({ onClose }) {
                         ))}
                     </ul>
                 </div>
+
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -94,3 +116,4 @@ export default function GameHistory({ onClose }) {
         </div>
     );
 }
+

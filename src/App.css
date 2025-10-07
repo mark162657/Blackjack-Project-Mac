@@ -1,31 +1,43 @@
-/* src/App.css */
+/**
+ * src/App.css
+ * Main stylesheet for the Blackjack application.
+ */
 
+/* ======================================================================================
+ * Tailwind CSS Setup & Base Styles
+ * ====================================================================================== */
 @import "tailwindcss";
 
 @tailwind utilities;
 
+/* Sets the base background for the entire application. */
+body {
+    background-color: #0f172a; /* Fallback for older browsers */
+    background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%);
+    background-attachment: fixed;
+}
 
+/* ======================================================================================
+ * Form Element Customizations
+ * ====================================================================================== */
+
+/* Hides the default spinner arrows on number input fields for a cleaner look. */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none !important;
     margin: 0;
 }
 
+/* Firefox-specific rule to hide number input spinners. */
 input[type="number"] {
     -moz-appearance: textfield !important;
 }
 
-/* --- Existing Styles --- */
+/* ======================================================================================
+ * Custom Animations & Keyframes
+ * ====================================================================================== */
 
-
-body {
-    background-color: #0f172a; /* fallback */
-    background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%);
-    background-attachment: fixed;
-}
-
-
-/* Custom Keyframes for a Dealing/Sliding Animation */
+/* Keyframes for the card dealing animation. */
 @keyframes slideIn {
     from {
         opacity: 0;
@@ -37,12 +49,12 @@ body {
     }
 }
 
-/* Custom Utilities for Reusable Animations */
+/* Utility class to apply the slideIn animation. */
 .animate-slide-in {
     animation: slideIn 0.3s ease-out forwards;
 }
 
-/* Fade in for the result banner */
+/* Keyframes for the result banner fade-in animation. */
 @keyframes fadeInDown {
     from {
         opacity: 0;
@@ -54,11 +66,12 @@ body {
     }
 }
 
+/* Utility class to apply the fadeInDown animation. */
 .animate-fade-in-down {
     animation: fadeInDown 0.5s ease-out;
 }
 
-/* Slow pulse for the bet chip display */
+/* Keyframes for a slow, subtle pulsing effect, used on the bet display. */
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -70,34 +83,8 @@ body {
     }
 }
 
+/* Utility class to apply the slow pulse animation. */
 .animate-pulse-slow {
     animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* --- Liquid Glass Effect --- */
-.glass-container {
-    position: relative; /* Needed for pseudo-elements */
-    isolation: isolate; /* Create a new stacking context */
-    background: transparent;
-}
-
-.glass-container::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -2; /* Behind content */
-    border-radius: inherit; /* Inherit from parent */
-    box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
-    background-color: rgb(255 255 255 / 10%);
-}
-
-.glass-container::after {
-    content: '';
-    position: absolute;
-    z-index: -1; /* Behind ::before but also behind content */
-    inset: 0;
-    border-radius: inherit;
-    backdrop-filter: blur(0px); /* This is a base, the filter does the heavy lifting */
-    filter: url(#container-glass);
-    overflow: hidden;
-}

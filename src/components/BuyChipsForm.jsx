@@ -1,22 +1,32 @@
-// src/components/BuyChipsForm.jsx
-
 import React, { useState } from 'react';
 import Button from './Button';
 
+// ======================================================================================
+// Constants
+// ======================================================================================
 const DEFAULT_REFILL_AMOUNT = 500;
 
+// ======================================================================================
+// Buy Chips Form Component
+// ======================================================================================
 export default function BuyChipsForm({ onClose, onRefill, currentChips, isLoggedIn }) {
+    // --- Component State ---
     const [refillAmount, setRefillAmount] = useState(DEFAULT_REFILL_AMOUNT);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Handles the click event for the refill button, preventing multiple submissions.
+     */
     const handleRefillClick = async () => {
         setLoading(true);
         await onRefill(refillAmount);
-        setLoading(false);
+        setLoading(false); // Re-enable button after operation is complete
     };
 
+    // --- Render Logic ---
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            {/* Modal Container */}
             <div className="bg-slate-900/60 p-8 rounded-2xl shadow-2xl w-full max-w-md border-2 border-amber-500/30 animate-fade-in-down">
                 <h2 className="text-3xl font-extrabold text-amber-300 mb-2 text-center">
                     Chip Refill Center
@@ -39,6 +49,7 @@ export default function BuyChipsForm({ onClose, onRefill, currentChips, isLogged
                         type="number"
                         value={refillAmount}
                         onChange={(e) => {
+                            // Basic input validation to ensure the amount is within a valid range
                             let value = parseInt(e.target.value, 10);
                             if (isNaN(value) || value < 1) value = 1;
                             if (value > 10000) value = 10000;
@@ -48,13 +59,13 @@ export default function BuyChipsForm({ onClose, onRefill, currentChips, isLogged
                         max="10000"
                         className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-slate-800/80 border-2 border-blue-500/70 text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
+                    {/* Quick-add buttons for convenience */}
                     <div className='flex gap-2 justify-center'>
                         <Button bg_color="gray" onClick={() => setRefillAmount(500)} className="!px-3 !py-1 !text-sm">+ $500</Button>
                         <Button bg_color="gray" onClick={() => setRefillAmount(2000)} className="!px-3 !py-1 !text-sm">+ $2,000</Button>
                         <Button bg_color="gray" onClick={() => setRefillAmount(10000)} className="!px-3 !py-1 !text-sm">+ $10,000</Button>
                     </div>
 
-                    {/* Centered Button */}
                     <div className="flex justify-center pt-2">
                         <Button onClick={handleRefillClick} bg_color="green" disabled={loading || refillAmount < 1} className="!w-auto py-3 text-xl">
                             {loading ? 'Adding Chips...' : `Add $${refillAmount.toLocaleString()} Chips`}

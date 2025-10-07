@@ -1,9 +1,7 @@
-// src/components/Card.jsx
-
 import React from 'react';
 
 const dealtAnimationClass = "animate-slide-in";
-// Updated card colors for better contrast on a glass background
+// Card colours
 const CARD_COLOR = (suit) => (suit === "♥" || suit === "♦") ? 'text-red-400' : 'text-slate-100';
 
 export default function Card({ card, isHidden = false }) {
