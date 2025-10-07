@@ -4,7 +4,8 @@ import React from 'react';
 import Button from './Button';
 import { useSupabase } from '../helper/supabaseContext';
 
-export default function Navbar({ onLogin, onSignup, onLogout, chips }) {
+// Added onBuyChips prop
+export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, chips }) {
     const { user } = useSupabase();
 
     return (
@@ -28,11 +29,16 @@ export default function Navbar({ onLogin, onSignup, onLogout, chips }) {
 
                     {/* Chips Display (Visible when logged in) */}
                     {user && (
-                        <div className="hidden sm:flex items-center space-x-2 p-2 rounded-xl bg-gray-700/50 border border-green-600/50 shadow-inner">
-                            <span className="text-sm font-semibold text-gray-400 uppercase">
-                                Chips:
+                        // MADE CLICKABLE: Added onClick and cursor-pointer class
+                        <div
+                            className="hidden sm:flex items-center space-x-2 p-2 rounded-xl bg-gray-700/50 border border-green-600/50 shadow-inner cursor-pointer hover:bg-gray-700 transition duration-200"
+                            onClick={onBuyChips} // <-- NEW CLICK HANDLER
+                            title="Click to Buy/Refill Chips"
+                        >
+                            <span className="text-sm font-semibold text-gray-400">
+                                Bankroll:
                             </span>
-                            <span className="text-xl font-mono text-green-400 tracking-wider">
+                            <span className="text-xl font-extrabold text-green-400">
                                 ${chips.toLocaleString()}
                             </span>
                         </div>
@@ -40,11 +46,12 @@ export default function Navbar({ onLogin, onSignup, onLogout, chips }) {
                 </div>
 
                 {/* User Actions */}
-                <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="flex items-center space-x-3">
                     {user ? (
                         // Logged In State
                         <>
-                            <span className="hidden md:inline text-sm font-medium text-gray-400 truncate max-w-xs pr-2 border-r border-gray-700">
+                            {/* User Email */}
+                            <span className="hidden md:inline text-sm text-gray-400 truncate max-w-xs p-1 rounded-lg bg-gray-700">
                                 {user.email}
                             </span>
                             {/* Logout Button */}

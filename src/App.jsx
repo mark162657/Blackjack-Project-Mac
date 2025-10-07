@@ -1,430 +1,635 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { combinations } from "./assets/cardDeck.js";
 import Button from "./components/Button.jsx";
 import Hand from "./components/Hand.jsx";
 import Navbar from "./components/Navbar.jsx";
 import AuthForm from "./components/AuthForm.jsx";
+import BuyChipsForm from "./components/BuyChipsForm.jsx"; // <--- NEW IMPORT
 import { useSupabase } from './helper/supabaseContext.jsx';
 
-import './App.css';
+import './App.css'; // For custom animations and Tailwind imports
 
+// --- CONFIG ---
 const DEFAULT_BET = 10;
 const STARTING_CHIPS = 500;
+// -------------
+
+// Helper to calculate the value of a hand, handling Aces (which can be 1 or 11)
+const calculateHandValue = (hand) => {
+    let value = 0;
+    let numAces = 0;
+
+    for (const card of hand) {
+        if (['K', 'Q', 'J', '10'].includes(card.rank)) {
+            value += 10;
+        } else if (card.rank === 'A') {
+            numAces += 1;
+            value += 11; // Start by counting Ace as 11
+        } else {
+            value += parseInt(card.rank, 10);
+        }
+    }
+
+    // Adjust for Aces if the total value exceeds 21
+    while (value > 21 && numAces > 0) {
+        value -= 10; // Change Ace value from 11 to 1
+        numAces -= 1;
+    }
+
+    return value;
+};
+
+// Helper to calculate payout based on result type
+const calculatePayout = (resultType, bet) => {
+    switch (resultType) {
+        case 'win':
+            return bet; // Win 1:1
+        case 'blackjack':
+            // Common blackjack payout is 3:2 (1.5x)
+            return Math.floor(bet * 1.5);
+        case 'loss':
+            return -bet; // Lose 1:1
+        case 'push':
+        default:
+            return 0; // Bet returned
+    }
+};
 
 function App() {
-    // Note: Assuming AuthForm, Navbar, Hand, and useSupabase are defined in other files as implied.
-    const { supabase, session, user, loading: authLoading } = useSupabase();
+    const { supabase, user, loading: authLoading } = useSupabase();
 
-    // --- AUTH STATE ---
+    // --- AUTH & UI STATE ---
     const [showAuthForm, setShowAuthForm] = useState(false);
+    const [showBuyChipsForm, setShowBuyChipsForm] = useState(false); // <--- NEW STATE
     const [authMessage, setAuthMessage] = useState({ type: "", message: "" });
-    // ----------------------
 
-    // Game States
+    // --- GAME STATES ---
     const [chips, setChips] = useState(STARTING_CHIPS);
-    const [currentBet, setCurrentBet] = useState(0);
+    const [currentBet, setCurrentBet] = useState(0); // The locked-in bet for the current hand
+    const [tempBetInput, setTempBetInput] = useState(DEFAULT_BET); // The value in the input field
     const [playerHand, setPlayerHand] = useState([]);
     const [dealerHand, setDealerHand] = useState([]);
     const [gameOver, setGameOver] = useState(false);
-    const [result, setResult] = useState({type: "", message: ""});
+    const [result, setResult] = useState({ type: "", message: "" });
     const [isBetting, setIsBetting] = useState(true);
-    // New State for AI Advisor
+    const [deck, setDeck] = useState([]);
     const [advisorSuggestion, setAdvisorSuggestion] = useState("");
 
-    // --- DATABASE FUNCTIONS ---
 
-    // Fetch or create profile (chips) on login
-    useEffect(() => {
-        if (user && !authLoading) {
-            const fetchProfile = async () => {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('chips')
-                    .eq('id', user.id)
-                    .single();
+    // --- SUPABASE INTERACTION FUNCTIONS ---
 
-                if (error && error.code !== 'PGRST116') {
-                    console.error("Error fetching profile:", error);
-                    setChips(STARTING_CHIPS);
-                } else if (data) {
-                    setChips(data.chips);
-                } else if (error && error.code === 'PGRST116') {
-                    // Profile does not exist (new sign-up). Insert a new profile.
-                    const { error: insertError } = await supabase
-                        .from('profiles')
-                        .insert({ id: user.id, chips: STARTING_CHIPS });
-
-                    if (insertError) {
-                        console.error("Error inserting new profile:", insertError);
-                    } else {
-                        setChips(STARTING_CHIPS);
-                    }
-                }
-            };
-            fetchProfile();
-        }
-    }, [user, authLoading, supabase]);
-
-    // Save chips and game history after a hand
-    const saveGameResult = async (finalResult, chipChange) => {
-        // Update 'profiles' table with new chip amount
-        if (user) {
-            const newChips = chips + chipChange;
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ chips: newChips })
-                .eq('id', user.id);
-
-            if (updateError) {
-                console.error("Error updating chips:", updateError);
-            }
-        }
-    };
-
-    // --- GAME LOGIC ---
-
-    const getRandomCardFromDeck = () => {
-        const randomIndex = Math.floor(Math.random() * combinations.length);
-        return combinations[randomIndex];
-    };
-
-    const calculateHandValue = (hand) => {
-        let value = 0;
-        let aceCount = 0;
-        hand.forEach((card) => {
-            if(card.rank === "J" || card.rank === "Q" || card.rank === "K") {
-                value += 10;
-            } else if(card.rank === "A") {
-                aceCount += 1;
-                value += 11;
-            } else {
-                value += parseInt(card.rank);
-            }
-        });
-        while(value > 21 && aceCount > 0) {
-            value -= 10;
-            aceCount -= 1;
-        }
-        return value;
-    };
-
-    // Helper function to get the value of a single card rank for the advisor
-    const getCardValue = (cardRank) => {
-        if (["J", "Q", "K"].includes(cardRank)) return 10;
-        if (cardRank === "A") return 11; // Treat Ace as 11 for upcard strategy
-        return parseInt(cardRank, 10);
-    };
-
-    const startHand = () => {
+    // 1. Fetch or Create User Profile (Chips)
+    const fetchUserChips = useCallback(async () => {
         if (!user) {
-            setAuthMessage({ type: "error", message: "You must be logged in to place a bet." });
+            // Reset to default starting chips for anonymous play
+            setChips(STARTING_CHIPS);
+            setAuthMessage({ type: "info", message: "Playing anonymously. Log in to save your chips and history." });
             return;
         }
-        if (chips < DEFAULT_BET) {
-            setResult({ type: "error", message: "Not enough chips to bet!" });
-            return;
-        }
 
-        setChips(prevChips => prevChips - DEFAULT_BET);
-        setCurrentBet(DEFAULT_BET);
-        setIsBetting(false);
+        // IMPORTANT CHANGE: Using maybeSingle() instead of single() to handle 0 rows gracefully
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('chips')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        const initialPlayerHand = [getRandomCardFromDeck(), getRandomCardFromDeck()];
-        const initialDealerHand = [getRandomCardFromDeck(), getRandomCardFromDeck()];
+        if (error) {
+            // This error occurs if there's a network issue or, more likely,
+            // if more than one profile row exists for the user ID (the current error).
+            console.error('Error fetching profile:', error.message);
+            setAuthMessage({ type: "error", message: `Failed to load user chips: ${error.message}` });
+        } else if (profile === null) {
+            // Profile does not exist (0 rows returned), create it with starting chips
+            console.log('Profile not found, creating new one...');
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ id: user.id, chips: STARTING_CHIPS }]);
 
-        setPlayerHand(initialPlayerHand);
-        setDealerHand(initialDealerHand);
-
-        setGameOver(false);
-        setResult({ type: "", message: "" });
-        setAuthMessage({ type: "", message: "" });
-        setAdvisorSuggestion(""); // Clear advisor suggestion on new hand
-
-        const playerValue = calculateHandValue(initialPlayerHand);
-
-        if (playerValue === 21) {
-            const dealerValue = calculateHandValue(initialDealerHand);
-            if(dealerValue === 21) {
-                handleGameOver({ type: "push", message: "Both have Blackjack! Push (bet returned)." });
+            if (insertError) {
+                console.error('Error inserting new profile:', insertError.message);
+                setAuthMessage({ type: "error", message: "Failed to set up user profile." });
             } else {
-                handleGameOver({ type: "player", message: "Blackjack! Player wins!" });
+                setChips(STARTING_CHIPS);
+                setAuthMessage({ type: "success", message: `Welcome! Your starting chips are $${STARTING_CHIPS}.` });
             }
+        } else if (profile) {
+            // Success: Profile loaded (exactly one row returned)
+            setChips(profile.chips);
+            setAuthMessage({ type: "success", message: `Welcome back! Current chips: $${profile.chips}.` });
         }
-    };
+    }, [user, supabase]);
 
-    const dealCardToPlayer = () => {
-        if (gameOver || isBetting) return;
-
-        // Clear suggestion after taking an action
-        setAdvisorSuggestion("");
-
-        const newHand = [...playerHand, getRandomCardFromDeck()];
-        setPlayerHand(newHand);
-        const playerValue = calculateHandValue(newHand);
-
-        if(playerValue > 21) {
-            handleGameOver({ type: "dealer", message: "Player busts! Dealer loses." });
-        }
-    };
-
-    // ⬅️ UPDATED: Removed 'async' and all delay logic (setTimeout/await) for instant dealer play.
-    const playerStand = () => {
-        if (gameOver || isBetting) return;
-
-        // Clear suggestion after taking an action
-        setAdvisorSuggestion("");
-
-        // 1. Reveal the dealer's hidden card immediately by setting gameOver=true
-        setGameOver(true);
-
-        // 2. Dealer logic: Calculate all dealer hits synchronously for an instant result.
-        let finalDealerHand = [...dealerHand];
-        let dealerValue = calculateHandValue(finalDealerHand);
-
-        // Dealer must HIT until value is 17 or more (S17 rule)
-        while (dealerValue < 17) {
-            const newCard = getRandomCardFromDeck();
-            finalDealerHand = [...finalDealerHand, newCard];
-            dealerValue = calculateHandValue(finalDealerHand);
+    // 2. Update Chips after Game
+    const updateProfileChips = async (newChips) => {
+        if (!user) {
+            // For anonymous play, only update local state, not the DB.
+            setChips(newChips);
+            return;
         }
 
-        // Update the state with the final dealer hand instantly
-        setDealerHand(finalDealerHand);
+        const { error } = await supabase
+            .from('profiles')
+            .update({ chips: newChips })
+            .eq('id', user.id);
 
-        const playerValue = calculateHandValue(playerHand);
-        let finalResult;
-
-        // 3. Determine the outcome
-        if(dealerValue > 21) {
-            finalResult = { type: "player", message: "Dealer busts! Player wins!" };
-        } else if(dealerValue > playerValue) {
-            finalResult = { type: "dealer", message: "Dealer wins!" };
-        } else if(playerValue > dealerValue) {
-            finalResult = { type: "player", message: "Player wins!" };
+        if (error) {
+            console.error('Error updating chips:', error.message);
+            // We set the local chips even on DB error to let the user continue playing
+            setChips(newChips);
         } else {
-            finalResult = { type: "push", message: "Push! It's a tie." };
+            setChips(newChips);
         }
-
-        // 4. Finalize the game state
-        // This will happen immediately after the state updates above.
-        handleGameOver(finalResult);
     };
 
-    const handleGameOver = (finalResult) => {
-        let chipChange = 0;
-
-        if (finalResult.type === "player") {
-            // Player gets back bet + 1x winnings (2x total)
-            // Note: Blackjack 3:2 payout (2.5x total) is not implemented here, using 2x for simplicity
-            chipChange = currentBet * 2;
-        } else if (finalResult.type === "push") {
-            // Player gets bet back (1x total)
-            chipChange = currentBet;
+    // 3. Save Game History
+    const saveGameHistory = async (bet, resultType, finalChips) => {
+        if (!user) {
+            // Do nothing for anonymous users to prevent DB write errors
+            return;
         }
 
-        setChips(prevChips => {
-            const newChips = prevChips + chipChange;
-            saveGameResult(finalResult, chipChange);
-            return newChips;
-        });
+        const payout = calculatePayout(resultType, bet);
 
-        setCurrentBet(0);
-        setResult(finalResult);
-        setGameOver(true);
-        setIsBetting(false);
-        setAdvisorSuggestion(""); // Clear suggestion on game end
+        const { error } = await supabase
+            .from('game_history')
+            .insert([
+                {
+                    user_id: user.id,
+                    bet_amount: bet,
+                    result_type: resultType,
+                    payout: payout,
+                    final_chips: finalChips,
+                },
+            ]);
+
+        if (error) {
+            console.error('Error saving game history:', error.message);
+        }
     };
 
+    // 4. Handle Chip Refill/Purchase (New Functionality)
+    const refillChips = async (amountToAdd) => {
+        const newChips = chips + amountToAdd;
+
+        // Update DB chips *only* if logged in
+        if (user) {
+            await updateProfileChips(newChips);
+            setAuthMessage({ type: "success", message: `Added $${amountToAdd} chips. New total: $${newChips}.` });
+        } else {
+            // For anonymous player, just update local state
+            setChips(newChips);
+            setAuthMessage({ type: "info", message: `Added $${amountToAdd} chips locally. Log in to save.` });
+        }
+
+        setShowBuyChipsForm(false);
+    }
+
+    // --- AUTH EFFECTS ---
+    useEffect(() => {
+        if (user) {
+            setShowAuthForm(false);
+            fetchUserChips();
+        } else {
+            // Initialize chips for anonymous play
+            setChips(STARTING_CHIPS);
+            setAuthMessage({ type: "info", message: "Playing anonymously. Chips and history are not saved." });
+        }
+    }, [user, fetchUserChips]);
+
+    // --- GAME LOGIC FUNCTIONS ---
+
+    // Shuffles and resets the deck
+    const shuffleDeck = () => {
+        const newDeck = [...combinations];
+        for (let i = newDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+        }
+        return newDeck;
+    };
+
+    // Deals one card from the deck
+    const dealCard = (currentDeck) => {
+        if (currentDeck.length === 0) {
+            console.log("Reshuffling deck.");
+            currentDeck = shuffleDeck();
+        }
+        const card = currentDeck.shift();
+        return { card, newDeck: currentDeck };
+    };
+
+    // Reset game state for a new hand
     const resetGame = () => {
         setPlayerHand([]);
         setDealerHand([]);
         setGameOver(false);
-        setResult({type: "", message: ""});
+        setResult({ type: "", message: "" });
         setIsBetting(true);
         setCurrentBet(0);
-        setAdvisorSuggestion(""); // Clear suggestion on reset
+        setTempBetInput(DEFAULT_BET); // Reset custom bet input
+        setAdvisorSuggestion("");
+
+        // Reshuffle if deck is low
+        if (deck.length < 20) {
+            setDeck(shuffleDeck());
+        }
+        // Clear success/error messages on reset, but keep info messages
+        setAuthMessage(prev => prev.type === 'info' ? prev : { type: "", message: "" });
     };
 
-    // --- AI ADVISOR LOGIC ---
+    // Start a new hand after placing a bet
+    const startHand = () => {
+        const betAmount = parseInt(tempBetInput, 10);
+
+        // --- Validation ---
+        if (isNaN(betAmount) || betAmount <= 0) {
+            setAuthMessage({ type: "error", message: "Bet must be a valid number greater than $0." });
+            return;
+        }
+        if (betAmount > chips) {
+            setAuthMessage({ type: "error", message: `Bet of $${betAmount} exceeds your chip count of $${chips}.` });
+            return;
+        }
+        // --- End Validation ---
+
+        // 1. Lock in the bet for the hand
+        setCurrentBet(betAmount);
+
+        // 2. Subtract bet from chips immediately (local state)
+        const newChips = chips - betAmount;
+
+        // Update DB chips *only* if logged in
+        if (user) {
+            updateProfileChips(newChips);
+        } else {
+            setChips(newChips); // Update local state for anonymous player
+        }
+
+        // Deal initial cards
+        let newDeck = deck.length < 20 ? shuffleDeck() : [...deck];
+
+        const { card: playerCard1, newDeck: deck1 } = dealCard(newDeck);
+        newDeck = deck1;
+        const { card: dealerCard1, newDeck: deck2 } = dealCard(newDeck);
+        newDeck = deck2;
+        const { card: playerCard2, newDeck: deck3 } = dealCard(newDeck);
+        newDeck = deck3;
+        const { card: dealerCard2, newDeck: deck4 } = dealCard(newDeck);
+        newDeck = deck4;
+
+        setPlayerHand([playerCard1, playerCard2]);
+        setDealerHand([dealerCard1, dealerCard2]);
+        setDeck(newDeck);
+        setIsBetting(false);
+        setTempBetInput(DEFAULT_BET); // Clear input amount for next round
+
+        // Check for immediate Blackjack
+        const playerValue = calculateHandValue([playerCard1, playerCard2]);
+        const dealerValue = calculateHandValue([dealerCard1, dealerCard2]);
+
+        const playerHasBlackjack = playerValue === 21;
+        const dealerHasBlackjack = dealerValue === 21;
+
+        if (playerHasBlackjack || dealerHasBlackjack) {
+            // Wait a moment for cards to appear, then check game over
+            setTimeout(() => handleGameOver(playerValue, dealerValue, playerHasBlackjack, dealerHasBlackjack), 1000);
+        }
+    };
+
+    // Player action: Hit
+    const playerHit = () => {
+        let newDeck = [...deck];
+        const { card, newDeck: deckAfterDeal } = dealCard(newDeck);
+        newDeck = deckAfterDeal;
+
+        const newPlayerHand = [...playerHand, card];
+        setPlayerHand(newPlayerHand);
+        setDeck(newDeck);
+
+        const playerValue = calculateHandValue(newPlayerHand);
+
+        if (playerValue > 21) {
+            // Player Busts immediately
+            setTimeout(() => handleGameOver(playerValue, calculateHandValue(dealerHand), false, false), 500);
+        }
+        setAdvisorSuggestion(""); // Clear advisor on action
+    };
+
+    // Dealer's Turn Logic
+    const dealerPlay = (currentDeck, finalPlayerValue) => {
+        let newDeck = [...currentDeck];
+        let currentDealerHand = [...dealerHand];
+        let dealerValue = calculateHandValue(currentDealerHand);
+
+        // Dealer must hit on 16 or less, and stand on 17 or more (S17 rule)
+        while (dealerValue < 17) {
+            const { card, newDeck: deckAfterDeal } = dealCard(newDeck);
+            newDeck = deckAfterDeal;
+            currentDealerHand.push(card);
+            dealerValue = calculateHandValue(currentDealerHand);
+        }
+
+        setDealerHand(currentDealerHand);
+        setDeck(newDeck);
+
+        // Determine final result after dealer is finished
+        setTimeout(() => handleGameOver(finalPlayerValue, dealerValue, false, false), 1000);
+    };
+
+    // Player action: Stand
+    const playerStand = () => {
+        const playerValue = calculateHandValue(playerHand);
+        // Delay to allow the UI to update, then start dealer's play
+        setTimeout(() => dealerPlay(deck, playerValue), 500);
+        setAdvisorSuggestion(""); // Clear advisor on action
+    };
+
+    // --- GAME OVER & PAYOUT ---
+
+    const handleGameOver = (playerValue, dealerValue, playerHasBlackjack, dealerHasBlackjack) => {
+        let newChips = chips + currentBet; // Bet is returned first (temporarily)
+        let resultType = "";
+        let message = "";
+
+        // Check for immediate Blackjack scenario first
+        if (playerHasBlackjack && dealerHasBlackjack) {
+            resultType = 'push';
+            message = "Dealer and Player both have Blackjack. It's a PUSH!";
+        } else if (playerHasBlackjack) {
+            // Player Blackjack (paid 3:2)
+            const payout = calculatePayout('blackjack', currentBet);
+            newChips += payout;
+            resultType = 'blackjack';
+            message = `BLACKJACK! You won $${payout}!`;
+        } else if (dealerHasBlackjack) {
+            // Dealer Blackjack (player loses bet)
+            newChips -= currentBet; // Revert the temporary return of the bet
+            resultType = 'loss';
+            message = `Dealer Blackjack! You lost $${currentBet}.`;
+        } else if (playerValue > 21) {
+            // Player Bust
+            newChips -= currentBet; // Revert the temporary return of the bet
+            resultType = 'loss';
+            message = `Player Busts! You lost $${currentBet}.`;
+        } else if (dealerValue > 21) {
+            // Dealer Bust
+            newChips += currentBet; // Bet returned + 1:1 win
+            resultType = 'win';
+            message = `Dealer Busts! You won $${currentBet}!`;
+        } else if (playerValue > dealerValue) {
+            // Player Win
+            newChips += currentBet; // Bet returned + 1:1 win
+            resultType = 'win';
+            message = `Player wins! You won $${currentBet}!`;
+        } else if (playerValue < dealerValue) {
+            // Player Loss
+            newChips -= currentBet; // Revert the temporary return of the bet
+            resultType = 'loss';
+            message = `Dealer wins! You lost $${currentBet}.`;
+        } else {
+            // Push
+            // chips already has the bet returned, no change needed
+            resultType = 'push';
+            message = "It's a PUSH! Bet returned.";
+        }
+
+        // 1. Save the game history to the database (only if logged in)
+        saveGameHistory(currentBet, resultType, newChips);
+
+        // 2. Update the chips in the database (only if logged in) and local state
+        updateProfileChips(newChips);
+
+        // 3. Update local state
+        setResult({ type: resultType, message: message });
+        setGameOver(true);
+        setCurrentBet(0); // Reset locked-in bet for next round
+    };
+
+    // --- AI ADVISOR LOGIC (Simplified Basic Strategy) ---
     const handleAdvisorClick = () => {
-        if (isBetting || gameOver || playerHand.length === 0 || dealerHand.length === 0) return;
+        if (isBetting || gameOver) {
+            setAdvisorSuggestion("Start a hand first to receive advice.");
+            return;
+        }
 
         const playerValue = calculateHandValue(playerHand);
-        const dealerUpCardRank = dealerHand[0].rank;
-        const dealerUpCardValue = getCardValue(dealerUpCardRank);
+        const dealerUpCard = dealerHand[0].rank;
 
-        let suggestion = "";
+        // Simplified logic: Check only total value
+        let advice = "";
 
-        // Simplified Basic Strategy
-        if (playerValue >= 17) {
-            suggestion = "The best strategy is to **Stand**. Don't risk busting!";
-        } else if (playerValue <= 11) {
-            suggestion = "The best strategy is to **Hit**. You can't bust here.";
-        } else if (playerValue >= 12 && playerValue <= 16) {
-            if (dealerUpCardValue >= 7) {
-                // Dealer showing 7, 8, 9, 10, or Ace (11)
-                suggestion = "The odds favor the dealer. You should **Hit** and try to improve your hand.";
-            } else {
-                // Dealer showing 2, 3, 4, 5, or 6
-                suggestion = "The dealer's card is weak. The optimal play is to **Stand**.";
-            }
-        } else {
-            suggestion = "Hmm, an edge case! Consult a full strategy chart, but leaning towards **Stand**.";
+        if (playerValue <= 11) {
+            advice = "HIT. You can't bust yet.";
+        } else if (playerValue === 12) {
+            advice = dealerUpCard >= '4' && dealerUpCard <= '6' ? "STAND. Dealer might bust." : "HIT.";
+        } else if (playerValue >= 13 && playerValue <= 16) {
+            advice = dealerUpCard >= '2' && dealerUpCard <= '6' ? "STAND. Hard to improve." : "HIT.";
+        } else { // 17 or more
+            advice = "STAND. Dealer must hit on anything less than 17.";
         }
 
-        setAdvisorSuggestion(suggestion);
+        setAdvisorSuggestion(advice);
     };
 
-    const playerValue = calculateHandValue(playerHand);
-    const dealerValue = gameOver ? calculateHandValue(dealerHand) : 0;
-
-    // --- AUTH/SUPABASE FUNCTIONS (Modal handlers) ---
-
-    const handleLogin = () => {
-        setShowAuthForm(true);
-        setAuthMessage({ type: "", message: "" });
-    };
-
-    const handleSignup = () => {
-        setShowAuthForm(true);
-        setAuthMessage({ type: "", message: "" });
-    };
-
-    const handleLogout = async () => {
-        setAuthMessage({ type: "", message: "" });
-        const { error } = await supabase.auth.signOut();
-
-        if (error) {
-            setAuthMessage({ type: "error", message: `Logout Error: ${error.message}` });
-        } else {
-            setChips(STARTING_CHIPS);
-            setAuthMessage({ type: "success", message: "Successfully logged out." });
-            resetGame();
-        }
-    };
-
-    const handleCloseAuthForm = () => {
-        setShowAuthForm(false);
-    }
-
-    // --- UI/RENDER ---
+    // --- RENDER LOGIC ---
 
     if (authLoading) {
-        return <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center text-3xl">Loading user session...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-900 text-amber-400 text-xl">
+                Loading Authentication...
+            </div>
+        );
     }
 
+    // Determine when player actions are available
+    const playerCanAct = !isBetting && !gameOver;
+    const playerValue = calculateHandValue(playerHand);
+    const dealerValue = calculateHandValue(dealerHand);
+
+    // Determine the value to display in the bet box
+    const displayBetAmount = isBetting ? tempBetInput : currentBet;
+
     return (
-        <div className="bg-gray-900 text-white min-h-screen w-screen pt-28 lg:pt-36 p-4 sm:p-8 flex flex-col items-center">
-
-            {/* ⬅️ AUTH MODAL */}
-            {showAuthForm && <AuthForm onClose={handleCloseAuthForm} />}
-
-            {/* ⬅️ NAVBAR COMPONENT */}
+        <div className="min-h-screen bg-gray-900 text-white flex flex-col pt-20">
+            {/* Navbar for Auth and Chips */}
             <Navbar
-                onLogin={handleLogin}
-                onSignup={handleSignup}
-                onLogout={handleLogout}
+                onLogin={() => {
+                    setShowAuthForm(true);
+                    setAuthMessage({ type: "prompt", message: "Choose Login or Sign Up." });
+                }}
+                onSignup={() => {
+                    setShowAuthForm(true);
+                    setAuthMessage({ type: "prompt", message: "Choose Login or Sign Up." });
+                }}
+                onLogout={async () => {
+                    const { error } = await supabase.auth.signOut();
+                    if (!error) {
+                        setAuthMessage({ type: "success", message: "You have been logged out. Your chips are reset for this session." });
+                        resetGame(); // Reset game on logout
+                    } else {
+                        setAuthMessage({ type: "error", message: "Logout failed: " + error.message });
+                    }
+                }}
+                onBuyChips={() => { // <--- NEW PROP FOR BUY CHIPS
+                    setShowBuyChipsForm(true);
+                    setAuthMessage({ type: "prompt", message: "Buy or reset your chips here." });
+                }}
                 chips={chips}
             />
 
-            {/* Auth Message Banner */}
-            {authMessage.message && (
-                <div className={`text-white w-full max-w-md ${
-                    authMessage.type === "success" ? "bg-green-700" : "bg-red-700"
-                } font-bold rounded-xl text-center shadow-2xl mt-4 mb-6 p-3 animate-fade-in-down`}>
-                    <p className="text-lg">{authMessage.message}</p>
-                </div>
+            {/* Authentication Modal */}
+            {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} />}
+
+            {/* Buy Chips Modal */}
+            {showBuyChipsForm && (
+                <BuyChipsForm
+                    onClose={() => setShowBuyChipsForm(false)}
+                    onRefill={refillChips} // Pass the refill logic
+                    currentChips={chips}
+                    isLoggedIn={!!user}
+                />
             )}
 
-            {/* CURRENT BET DISPLAY */}
-            <div className="flex justify-center w-full max-w-md mb-10">
-                {currentBet > 0 && (
-                    <div className="p-3 rounded-xl border border-gray-700 bg-gray-800 shadow-lg text-center animate-pulse-slow w-full">
-                        <p className="text-sm text-gray-400">CURRENT BET</p>
-                        <p className="text-3xl font-bold text-yellow-400">${DEFAULT_BET}</p>
+            <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full">
+
+                {/* Dealer Hand */}
+                <Hand
+                    cards={dealerHand}
+                    title="Dealer"
+                    handValue={dealerValue}
+                    isDealer={true}
+                    gameOver={gameOver}
+                />
+
+                {/* Game Messages & Results */}
+                <div className="my-6 w-full max-w-md text-center">
+                    {/* Game Result Banner */}
+                    {gameOver && result.message && (
+                        <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-xl sm:text-2xl 
+                            ${result.type === 'win' || result.type === 'blackjack' ? 'bg-green-600' :
+                            result.type === 'loss' ? 'bg-red-600' : 'bg-amber-500'}
+                            text-white transition duration-500`}>
+                            {result.message}
+                        </div>
+                    )}
+
+                    {/* Advisor Suggestion */}
+                    {advisorSuggestion && !gameOver && (
+                        <div className="mt-4 p-3 bg-blue-800/80 rounded-lg text-sm text-blue-200 shadow-lg">
+                            <span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}
+                        </div>
+                    )}
+
+                    {/* Auth/Info Message */}
+                    {authMessage.message && (
+                        <div className={`mt-4 p-3 rounded-lg text-sm font-medium ${
+                            authMessage.type === 'error' ? 'bg-red-700/80 text-white' :
+                                authMessage.type === 'success' ? 'bg-green-700/80 text-white' :
+                                    'bg-gray-700/80 text-gray-300'
+                        }`}>
+                            {authMessage.message}
+                        </div>
+                    )}
+                </div>
+
+                {/* Player Hand */}
+                <Hand
+                    cards={playerHand}
+                    title="Player"
+                    handValue={playerValue}
+                    isDealer={false}
+                    gameOver={gameOver}
+                />
+
+            </main>
+
+            {/* Controls and Bet Panel */}
+            <div className="sticky bottom-0 bg-gray-800/95 backdrop-blur-sm p-4 border-t border-gray-700 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+
+                {/* Current Bet Display */}
+                <div className="text-center mb-4">
+                    <p className="text-lg text-gray-400 font-semibold">
+                        {isBetting ? 'Next Bet' : 'Current Bet'}
+                    </p>
+                    <span className={`text-4xl font-extrabold tracking-wider 
+                        ${(isBetting && displayBetAmount > 0) || (!isBetting && displayBetAmount > 0) ? 'text-amber-400 animate-pulse-slow' : 'text-gray-500'}`}
+                    >
+                        ${displayBetAmount.toLocaleString()}
+                    </span>
+                </div>
+
+                {/* Betting Controls (Custom Input) */}
+                {isBetting ? (
+                    <div className="flex flex-col items-center gap-3 max-w-sm mx-auto p-4 bg-gray-700/50 rounded-xl shadow-inner">
+                        <label htmlFor="bet-input" className="text-sm font-semibold text-gray-300">
+                            Enter Bet Amount (Min $1, Max ${chips.toLocaleString()})
+                        </label>
+                        <input
+                            id="bet-input"
+                            type="number"
+                            value={tempBetInput}
+                            onChange={(e) => {
+                                let value = parseInt(e.target.value, 10);
+                                // Basic client-side validation for smooth UI
+                                if (isNaN(value) || value < 0) value = 0;
+                                if (value > chips) value = chips; // Enforce max chip limit immediately
+                                setTempBetInput(value);
+                                setAuthMessage(prev => prev.type === 'info' ? prev : { type: "", message: "" });
+                            }}
+                            onBlur={() => {
+                                // Ensure it doesn't leave 0 if user clears the field, unless chips is 0
+                                if (chips > 0 && tempBetInput < 1) setTempBetInput(DEFAULT_BET);
+                                if (chips === 0) setTempBetInput(0);
+                            }}
+                            min="1"
+                            max={chips}
+                            className="w-full text-center text-3xl font-extrabold p-3 rounded-lg bg-gray-900 border-2 border-amber-500 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition duration-200"
+                            placeholder={`$${DEFAULT_BET}`}
+                        />
+                        <div className="flex w-full gap-3">
+                            <Button
+                                bg_color="gray"
+                                onClick={() => setTempBetInput(chips)}
+                                disabled={chips === 0 || tempBetInput === chips}
+                                className="w-1/2 text-sm"
+                            >
+                                Bet Max ($ {chips.toLocaleString()})
+                            </Button>
+                            <Button
+                                bg_color="green"
+                                onClick={startHand}
+                                // Disabled if bet is 0 or greater than chips
+                                disabled={displayBetAmount <= 0 || displayBetAmount > chips || chips === 0}
+                                className="w-1/2 text-xl py-3"
+                            >
+                                Deal
+                            </Button>
+                        </div>
+                    </div>
+                ) : gameOver ? (
+                    // Game Over Controls
+                    <div className="flex justify-center gap-4 max-w-xl mx-auto">
+                        <Button bg_color="green" onClick={resetGame}>New Hand</Button>
+                    </div>
+                ) : (
+                    // Player Action Controls
+                    <div className="flex justify-center gap-4 max-w-xl mx-auto">
+                        <Button onClick={playerHit}>Hit</Button>
+
+                        {/* AI Advisor Button */}
+                        <Button
+                            onClick={handleAdvisorClick}
+                            bg_color="advisor"
+                            className="!w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold !text-white !shadow-md hover:!shadow-lg !transform hover:!scale-110 transition duration-200 flex items-center justify-center self-center"
+                        >
+                            ?
+                        </Button>
+
+                        <Button bg_color="red" onClick={playerStand}>Stand</Button>
                     </div>
                 )}
             </div>
-
-            {/* DEALER HAND SECTION */}
-            <div className="w-full max-w-2xl flex flex-col items-center mb-8">
-                <div className="w-full">
-                    <Hand
-                        cards={dealerHand}
-                        title={"Dealer's Hand"}
-                        handValue={dealerValue}
-                        isDealer={true}
-                        gameOver={gameOver}
-                    />
-                </div>
-            </div>
-
-            {/* Middle Section: Game Result Banner */}
-            {result.message && (
-                <div className={`text-white w-full max-w-md ${
-                    result.type === "player" ? "bg-green-600" :
-                        result.type === "push" ? "bg-yellow-600" :
-                            result.type === "error" ? "bg-orange-600" : "bg-red-700"
-                } font-bold rounded-xl text-center shadow-2xl my-8 p-4 animate-fade-in-down`}>
-                    <h2 className="text-3xl">{result.message}</h2>
-                </div>
-            )}
-
-            {/* Player Advice Display */}
-            {advisorSuggestion && (
-                <div className="w-full max-w-md bg-blue-900/50 p-3 rounded-xl shadow-lg border border-blue-700 mt-4 mb-4 text-center">
-                    <p className="font-semibold text-blue-300">AI Advisor Says:</p>
-                    <p className="text-lg" dangerouslySetInnerHTML={{ __html: advisorSuggestion }} />
-                </div>
-            )}
-
-
-            {/* PLAYER HAND & BUTTONS SECTION */}
-            <div className="w-full max-w-2xl flex flex-col items-center mt-8">
-                {/* Player Hand */}
-                <div className="w-full mb-8">
-                    <Hand cards={playerHand} title={"Player's Hand"} handValue={playerValue}/>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-center gap-4 mt-4 w-full max-w-lg flex-wrap">
-                    {/* Game control buttons */}
-                    {isBetting || gameOver ? (
-                        <Button
-                            bg_color={isBetting ? "green" : "blue"}
-                            onClick={isBetting ? startHand : resetGame}
-                            disabled={!user || (isBetting && chips < DEFAULT_BET)}
-                        >
-                            {isBetting ? `Place $${DEFAULT_BET} Bet / Deal` : "New Game"}
-                        </Button>
-                    ) : (
-                        <>
-                            <Button bg_color={"green"} onClick={dealCardToPlayer}>Hit</Button>
-                            {/* AI Advisor Button: Positioned between Hit and Stand, styled as a small, circular icon */}
-                            <Button
-                                onClick={handleAdvisorClick}
-                                // Override all default sizing/padding to create a small, circular icon button
-                                className="!bg-blue-700/80 hover:!bg-blue-600 active:!bg-blue-800
-                                             !w-9 !h-9 !p-0 !rounded-full
-                                             !text-lg !font-extrabold !text-white
-                                             !shadow-md hover:!shadow-lg
-                                             !transform hover:!scale-110
-                                             transition duration-200
-                                             flex items-center justify-center self-center"
-                            >
-                                ?
-                            </Button>
-                            <Button bg_color={"red"} onClick={playerStand}>Stand</Button>
-                        </>
-                    )}
-                </div>
-                {!user && isBetting && (
-                    <p className="text-sm text-yellow-400 mt-4">
-                        Please Log In to place a bet and start the game.
-                    </p>
-                )}
-            </div>
-            <div className="flex-grow"></div>
         </div>
     );
 }
