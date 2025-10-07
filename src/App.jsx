@@ -307,6 +307,7 @@ function App() {
         // Check if the player has busted
         const playerValue = calculateHandValue(newPlayerHand);
         if (playerValue > 21) {
+            // Player busts, end the game immediately
             setTimeout(() => handleGameOver(playerValue, calculateHandValue(dealerHand)), 500);
         }
         setAdvisorSuggestion("");
@@ -376,13 +377,13 @@ function App() {
             resultType = 'win';
             finalChips += currentBet * 2;
             message = "You Win!";
-        } else if (playerValue < dealerValue) {
-            resultType = 'loss';
-            message = "You Lose!";
-        } else {
+        } else if (playerValue === dealerValue) {
             resultType = 'push';
             finalChips += currentBet;
             message = "Push!";
+        } else {
+            resultType = 'loss';
+            message = "You Lose!";
         }
 
         // Finalize state updates
@@ -451,7 +452,8 @@ function App() {
             {showBuyChipsForm && <BuyChipsForm onClose={() => setShowBuyChipsForm(false)} onRefill={refillChips} currentChips={chips} isLoggedIn={!!user} />}
             {showHistory && <GameHistory onClose={() => setShowHistory(false)} />}
 
-            <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-24 pb-48">
+            {/* Adjusted padding here for mobile-friendliness */}
+            <main className="flex-grow flex flex-col justify-center items-center p-4 max-w-7xl mx-auto w-full pt-24 sm:pt-28 pb-48 sm:pb-56">
 
                 {/* Conditionally render welcome/placeholder screen or the active game */}
                 {playerHand.length === 0 ? (
@@ -571,4 +573,5 @@ function App() {
 }
 
 export default App;
+
 
