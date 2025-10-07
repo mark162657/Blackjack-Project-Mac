@@ -270,7 +270,11 @@ function App() {
         }
 
         setCurrentBet(betAmount);
-        updateProfileChips(chips - betAmount);
+
+        // Compute chips after bet and update UI immediately to avoid race conditions.
+        const chipsAfterBet = chips - betAmount;
+        setChips(chipsAfterBet);              // immediate UI update
+        updateProfileChips(chipsAfterBet);    // persist asynchronously
 
         let newDeck = deck.length < 20 ? shuffleDeck() : [...deck];
 
@@ -291,7 +295,8 @@ function App() {
 
         // Check for immediate Blackjack, which ends the hand
         if (playerValue === 21 || dealerValue === 21) {
-            setTimeout(() => handleGameOver(playerValue, dealerValue, playerValue === 21, dealerValue === 21), 1000);
+            // Pass chipsAfterBet to make sure final calculation uses the post-bet amount (no race)
+            setTimeout(() => handleGameOver(playerValue, dealerValue, playerValue === 21, dealerValue === 21, chipsAfterBet), 1000);
         }
     };
 
@@ -350,47 +355,64 @@ function App() {
     /**
      * Determines the winner, updates chips, and sets the final game result message.
      */
-    const handleGameOver = (playerValue, dealerValue, playerHasBlackjack = false, dealerHasBlackjack = false) => {
-        let finalChips = chips;
+// ---------- handleGameOver (updated signature + logic) ----------
+    /**
+     * Determines the winner, updates chips, and sets the final game result message.
+     * Accepts optional `chipsAfterBet` so callers (like immediate blackjack) can provide
+     * the post-bet chips value and avoid race conditions.
+     */
+    const handleGameOver = (
+        playerValue,
+        dealerValue,
+        playerHasBlackjack = false,
+        dealerHasBlackjack = false,
+        chipsAfterBet = null
+    ) => {
+        // Use provided chipsAfterBet if available; otherwise fall back to current state.
+        let baseChips = (typeof chipsAfterBet === 'number') ? chipsAfterBet : chips;
+        let finalChips = baseChips;
         let resultType, message;
 
         // Determine game outcome based on hand values
         if (playerHasBlackjack && dealerHasBlackjack) {
             resultType = 'push';
-            finalChips += currentBet;
+            finalChips = baseChips + currentBet; // return bet
             message = "Push!";
         } else if (playerHasBlackjack) {
             resultType = 'blackjack';
             const payout = calculatePayout('blackjack', currentBet);
-            finalChips += currentBet + payout;
+            finalChips = baseChips + currentBet + payout; // return bet + payout
             message = `Blackjack! You won $${payout}!`;
         } else if (dealerHasBlackjack) {
             resultType = 'loss';
+            finalChips = baseChips; // lost bet already deducted
             message = "Dealer Blackjack!";
         } else if (playerValue > 21) {
             resultType = 'loss';
+            finalChips = baseChips;
             message = "Bust!";
         } else if (dealerValue > 21) {
             resultType = 'win';
-            finalChips += currentBet * 2;
+            finalChips = baseChips + currentBet * 2; // return bet + win
             message = "Dealer Busts!";
         } else if (playerValue > dealerValue) {
             resultType = 'win';
-            finalChips += currentBet * 2;
+            finalChips = baseChips + currentBet * 2;
             message = "You Win!";
         } else if (playerValue === dealerValue) {
             resultType = 'push';
-            finalChips += currentBet;
+            finalChips = baseChips + currentBet;
             message = "Push!";
         } else {
             resultType = 'loss';
+            finalChips = baseChips;
             message = "You Lose!";
         }
 
         // Finalize state updates
         saveGameHistory(currentBet, resultType, finalChips);
         updateProfileChips(finalChips);
-        setResult({ type: resultType, message: message });
+        setResult({ type: resultType, message });
         setGameOver(true);
         setCurrentBet(0);
     };
