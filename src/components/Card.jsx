@@ -3,7 +3,8 @@
 import React from 'react';
 
 const dealtAnimationClass = "animate-slide-in";
-const CARD_COLOR = (suit) => (suit === "♥" || suit === "♦") ? 'text-red-600' : 'text-slate-800';
+// Updated card colors for better contrast on a glass background
+const CARD_COLOR = (suit) => (suit === "♥" || suit === "♦") ? 'text-red-400' : 'text-slate-100';
 
 export default function Card({ card, isHidden = false }) {
 
@@ -12,9 +13,9 @@ export default function Card({ card, isHidden = false }) {
         return (
             <div className={`
                 w-28 h-40 sm:w-32 sm:h-44 rounded-xl shadow-lg m-1 ${dealtAnimationClass}
-                bg-slate-800 border-2 border-slate-600 p-2
+                bg-black/30 backdrop-blur-lg border-2 border-slate-500 p-2
             `}>
-                <div className="w-full h-full border-2 border-slate-500 rounded-md"></div>
+                <div className="w-full h-full border-2 border-slate-400/50 rounded-md"></div>
             </div>
         );
     }
@@ -22,9 +23,10 @@ export default function Card({ card, isHidden = false }) {
     // Face-Up Card
     return (
         <div className={`
-            w-28 h-40 sm:w-32 sm:h-44 bg-slate-50 text-slate-800 rounded-xl shadow-xl 
-            flex flex-col items-center justify-center p-0 m-1 
+            w-28 h-40 sm:w-32 sm:h-44 rounded-xl shadow-xl m-1 
             font-mono relative overflow-hidden ${dealtAnimationClass}
+            bg-white/20 backdrop-blur-md border border-white/30 text-white
+            flex items-center justify-center
         `}>
             {/* Top-Left Corner */}
             <div className={`absolute top-2 left-3 text-3xl font-bold ${CARD_COLOR(card.suit)}`}>
@@ -43,3 +45,4 @@ export default function Card({ card, isHidden = false }) {
         </div>
     );
 }
+

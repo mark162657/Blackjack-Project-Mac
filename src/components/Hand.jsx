@@ -32,7 +32,7 @@ export default function Hand({ cards, title, handValue, isDealer = false, gameOv
             <h2 className="text-3xl mb-2 text-center text-white">
                 {title}: {displayValue}
             </h2>
-            <div className="flex justify-center flex-wrap gap-2">
+            <div className="flex justify-center flex-wrap gap-4">
                 {cards.map((card, index) => {
                     const isHidden = isDealer && index === 1 && !gameOver;
                     return <Card key={index} card={card} isHidden={isHidden} />;
