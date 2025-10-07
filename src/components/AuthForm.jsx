@@ -1,15 +1,15 @@
-// src/components/AuthForm.jsx
-
 import React, { useState } from 'react';
 import Button from './Button';
 import { useSupabase } from '../helper/supabaseContext';
 
-export default function AuthForm({ onClose }) {
+// AuthForm now accepts initialIsLogin to control whether it starts in Login or Signup mode.
+export default function AuthForm({ onClose, initialIsLogin = true }) {
     const { supabase } = useSupabase();
-    const [isLogin, setIsLogin] = useState(true);
+    // Use the prop to initialize the state
+    const [isLogin, setIsLogin] = useState(initialIsLogin);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState(''); // New state for password confirmation
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const title = isLogin ? 'Log In' : 'Sign Up';

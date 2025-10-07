@@ -78,6 +78,7 @@ function App() {
     // --- Component State Management ---
     // UI visibility states
     const [showAuthForm, setShowAuthForm] = useState(false);
+    const [isLoginMode, setIsLoginMode] = useState(true); // NEW: Controls initial mode of AuthForm
     const [showBuyChipsForm, setShowBuyChipsForm] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [authMessage, setAuthMessage] = useState({ type: "", message: "" });
@@ -439,8 +440,9 @@ function App() {
     return (
         <div className="min-h-screen bg-transparent text-white flex flex-col font-sans">
             <Navbar
-                onLogin={() => setShowAuthForm(true)}
-                onSignup={() => setShowAuthForm(true)}
+                // UPDATED: Pass functions to correctly set the AuthForm mode
+                onLogin={() => { setIsLoginMode(true); setShowAuthForm(true); }}
+                onSignup={() => { setIsLoginMode(false); setShowAuthForm(true); }}
                 onLogout={async () => await supabase.auth.signOut()}
                 onBuyChips={() => setShowBuyChipsForm(true)}
                 onShowHistory={() => setShowHistory(true)}
@@ -448,7 +450,8 @@ function App() {
             />
 
             {/* Modal Components */}
-            {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} />}
+            {/* UPDATED: Pass the initialIsLogin prop to AuthForm */}
+            {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} initialIsLogin={isLoginMode} />}
             {showBuyChipsForm && <BuyChipsForm onClose={() => setShowBuyChipsForm(false)} onRefill={refillChips} currentChips={chips} isLoggedIn={!!user} />}
             {showHistory && <GameHistory onClose={() => setShowHistory(false)} />}
 
@@ -508,7 +511,9 @@ function App() {
                         <Button
                             onClick={handleAdvisorClick}
                             bg_color="advisor"
-                            className="!absolute !w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold top-1 right-2 sm:top-1/2 sm:right-6 sm:-translate-y-1/3"                        >
+                            // Advisor Button Fix: Adjusted positioning for mobile (top-1 right-2)
+                            className="!absolute !w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold top-1 right-2 sm:top-1/2 sm:right-6 sm:-translate-y-1/3"
+                        >
                             ?
                         </Button>
                     )}
@@ -520,14 +525,9 @@ function App() {
                         </span>
                     </div>
 
-                    {/* Renders content based on user login and game state */}
-                    {!user ? (
-                        <div className="text-center p-4 bg-black/20 rounded-xl">
-                            <h3 className="text-xl font-bold text-amber-300">Please Log In to Play</h3>
-                            <p className="text-slate-300 mt-1">You need an account to place a bet.</p>
-                        </div>
-                    ) : isBetting ? (
-                        // Betting UI
+                    {/* UPDATED: Removed the redundant "Please Log In to Play" section */}
+                    {user && isBetting ? (
+                        // Betting UI (Logged in)
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto p-4 bg-black/20 rounded-xl shadow-inner">
                             <div className="flex-grow w-full sm:w-auto text-center">
                                 <label htmlFor="bet-input" className="text-sm font-semibold text-slate-300 block mb-2">
@@ -553,17 +553,20 @@ function App() {
                                 Deal
                             </Button>
                         </div>
-                    ) : gameOver ? (
-                        // "New Hand" button after a game ends
+                    ) : user && gameOver ? (
+                        // "New Hand" button after a game ends (Logged in)
                         <div className="flex justify-center gap-4 max-w-xl mx-auto">
                             <Button bg_color="green" onClick={resetGame}>New Hand</Button>
                         </div>
-                    ) : (
-                        // "Hit" and "Stand" buttons during a game
+                    ) : user ? (
+                        // "Hit" and "Stand" buttons during a game (Logged in)
                         <div className="flex justify-center gap-4 max-w-sm mx-auto">
                             <Button onClick={playerHit}>Hit</Button>
                             <Button bg_color="red" onClick={playerStand}>Stand</Button>
                         </div>
+                    ) : (
+                        // If not logged in, render an empty space
+                        <div className="h-10"></div>
                     )}
                 </div>
             </div>
@@ -572,4 +575,3 @@ function App() {
 }
 
 export default App;
-
