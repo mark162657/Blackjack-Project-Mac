@@ -1,17 +1,31 @@
-# React + Vite
+# ♠️ Blackjack Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, web-based **Blackjack** game built with **React** and **Supabase**.  
+This application features a sleek, *glassmorphism*-inspired UI and allows users to play, save their progress, and track their game history.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- **Classic Blackjack Rules**: Implements standard player actions including *Hit*, *Stand*, *Bust*, *Push*, and a **3:2 payout** for Blackjack.
+- **User Authentication**: Secure user login and signup functionality handled by **Supabase Auth**.
+- **Persistent Bankroll**: Player chip counts are saved to a **Supabase** database, allowing users to pick up where they left off.
+- **Game History**: Logged-in users can view a history of their last **25 games**, including the bet amount, result, and payout.
+- **Chip Management**: A *Buy Chips* feature allows users to refill their bankroll.
+- **AI Advisor**: A simple basic strategy advisor to help players make decisions.
+- **Modern UI**: A responsive and visually appealing *glass* design built with **Tailwind CSS**.
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🧠 Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React (with Vite)
+- **Styling**: Tailwind CSS
+- **Backend & Database**: Supabase
 
+---
+
+## 📞 Contact
+
+**Name:** Mark Chang  
+**Email:** [mark162657@gmail.com](mailto:mark162657@gmail.com)
