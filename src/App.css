@@ -74,3 +74,30 @@ body {
     animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* --- Liquid Glass Effect --- */
+.glass-container {
+    position: relative; /* Needed for pseudo-elements */
+    isolation: isolate; /* Create a new stacking context */
+    background: transparent;
+}
+
+.glass-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2; /* Behind content */
+    border-radius: inherit; /* Inherit from parent */
+    box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+    background-color: rgb(255 255 255 / 10%);
+}
+
+.glass-container::after {
+    content: '';
+    position: absolute;
+    z-index: -1; /* Behind ::before but also behind content */
+    inset: 0;
+    border-radius: inherit;
+    backdrop-filter: blur(0px); /* This is a base, the filter does the heavy lifting */
+    filter: url(#container-glass);
+    overflow: hidden;
+}

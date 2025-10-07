@@ -9,22 +9,38 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, onShow
 
     return (
         <div className="w-full fixed top-0 z-50 p-4">
-            <nav className="
-                max-w-7xl mx-auto h-16 sm:h-20 p-3 sm:p-4
-                flex justify-between items-center
+            {/* Glass Container Navbar */}
+            <nav
+                className="
+                    max-w-7xl mx-auto h-16 sm:h-20 p-3 sm:p-4
+                    flex justify-between items-center
+                    glass-container
+                    rounded-2xl sm:rounded-3xl
+                    shadow-2xl shadow-black/30
+                    transition-all duration-300
+                    relative overflow-hidden
+                "
+            >
+                {/* SVG Filter for the Liquid Glass Effect */}
+                <svg id="liquid-filter" className="absolute w-0 h-0">
+                    <filter id="liquid-glass">
+                        <feTurbulence
+                            id="liquid-turbulence"
+                            type="fractalNoise"
+                            baseFrequency="0.015 0.02"
+                            numOctaves="3"
+                            seed="2"
+                        />
+                        <feDisplacementMap in="SourceGraphic" scale="30" />
+                    </filter>
+                </svg>
 
-                {/* --- STYLE CHANGES START HERE --- */}
-                bg-gradient-to-b from-slate-900/70 to-slate-900/50 {/* Subtle gradient for depth */}
-                backdrop-blur-lg
-                rounded-2xl sm:rounded-3xl
-                shadow-2xl shadow-black/30
-                border border-white/20 {/* Slightly brighter border */}
-                {/* --- STYLE CHANGES END HERE --- */}
-
-                transition-all duration-300">
-
+                {/* Left side — title + chips */}
                 <div className="flex items-center space-x-6">
-                    <span className="text-3xl font-extrabold text-white tracking-widest uppercase cursor-pointer" style={{textShadow: '0 2px 10px rgba(251, 191, 36, 0.5)'}}>
+                    <span
+                        className="text-3xl font-extrabold text-white tracking-widest uppercase cursor-pointer"
+                        style={{ textShadow: '0 2px 10px rgba(251, 191, 36, 0.5)' }}
+                    >
                         ♠ <span className="text-amber-400">BLACKJACK</span>
                     </span>
 
@@ -44,6 +60,7 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, onShow
                     )}
                 </div>
 
+                {/* Right side — auth buttons */}
                 <div className="flex items-center space-x-3">
                     {user ? (
                         <>
