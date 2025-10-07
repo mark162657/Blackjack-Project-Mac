@@ -1,19 +1,16 @@
-// src/components/Navbar.jsx (Restored to the preferred design)
+// src/components/Navbar.jsx
 
 import React from 'react';
 import Button from './Button';
 import { useSupabase } from '../helper/supabaseContext';
 
-// Added onBuyChips prop
-export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, chips }) {
+// Added onShowHistory prop
+export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, onShowHistory, chips }) {
     const { user } = useSupabase();
 
     return (
-        // The floating container wrapper
         <div className="w-full fixed top-0 z-40 p-4">
-
             <nav className="max-w-7xl mx-auto h-16 sm:h-20
-                        /* Preferred Design Classes */
                         bg-gray-800/90 backdrop-blur-md
                         rounded-2xl sm:rounded-3xl
                         shadow-2xl shadow-black/80
@@ -21,18 +18,15 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, chips 
                         flex justify-between items-center
                         border border-gray-700/50 transition duration-300 ease-in-out">
 
-                {/* Logo / Title */}
                 <div className="flex items-center space-x-6">
                     <span className="text-3xl font-extrabold text-amber-400 tracking-widest uppercase cursor-pointer transition duration-300 hover:text-amber-300">
                         ♠ BLACKJACK
                     </span>
 
-                    {/* Chips Display (Visible when logged in) */}
                     {user && (
-                        // MADE CLICKABLE: Added onClick and cursor-pointer class
                         <div
                             className="hidden sm:flex items-center space-x-2 p-2 rounded-xl bg-gray-700/50 border border-green-600/50 shadow-inner cursor-pointer hover:bg-gray-700 transition duration-200"
-                            onClick={onBuyChips} // <-- NEW CLICK HANDLER
+                            onClick={onBuyChips}
                             title="Click to Buy/Refill Chips"
                         >
                             <span className="text-sm font-semibold text-gray-400">
@@ -45,24 +39,26 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, chips 
                     )}
                 </div>
 
-                {/* User Actions */}
                 <div className="flex items-center space-x-3">
                     {user ? (
-                        // Logged In State
                         <>
-                            {/* User Email */}
+                            {/* NEW: History Button */}
+                            <Button
+                                onClick={onShowHistory}
+                                bg_color="gray"
+                                className="!px-3 !py-1 !rounded-lg !text-sm hidden sm:block"
+                            >
+                                History
+                            </Button>
                             <span className="hidden md:inline text-sm text-gray-400 truncate max-w-xs p-1 rounded-lg bg-gray-700">
                                 {user.email}
                             </span>
-                            {/* Logout Button */}
                             <Button bg_color="gray" onClick={onLogout} className="!px-3 !py-1 !rounded-lg !text-sm">
                                 Logout
                             </Button>
                         </>
                     ) : (
-                        // Logged Out State
                         <>
-                            {/* Login Button - Subtle Gray */}
                             <Button
                                 bg_color="gray"
                                 onClick={onLogin}
@@ -70,7 +66,6 @@ export default function Navbar({ onLogin, onSignup, onLogout, onBuyChips, chips 
                             >
                                 Log In
                             </Button>
-                            {/* Sign Up Button - Primary (Blue) with Shadow */}
                             <Button
                                 bg_color="blue"
                                 onClick={onSignup}

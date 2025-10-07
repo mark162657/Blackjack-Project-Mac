@@ -31,6 +31,10 @@ export default function AuthForm({ onClose }) {
                 password: password,
             });
             error = response.error;
+            if (!error) {
+                setMessage('Login successful! Returning to game...');
+                setTimeout(() => onClose(), 1500); // Auto-close on success
+            }
         } else {
             // SIGN UP with Email and Password
             response = await supabase.auth.signUp({
@@ -38,16 +42,16 @@ export default function AuthForm({ onClose }) {
                 password: password,
             });
             error = response.error;
+            if (!error && response.data.user) {
+                setMessage('Success! You are now logged in.');
+                setTimeout(() => onClose(), 1500); // Auto-close on success
+            } else if (!error && response.data.session === null) {
+                setMessage('Success! Please check your email to confirm your account and log in.');
+            }
         }
 
         if (error) {
             setMessage(`Error: ${error.message}`);
-        } else if (!isLogin && response.data.user) {
-            setMessage('Success! You are now logged in.');
-        } else if (!isLogin && response.data.session === null) {
-            setMessage('Success! Please check your email to confirm your account and log in.');
-        } else if (isLogin) {
-            setMessage('Login successful!');
         }
 
         setLoading(false);

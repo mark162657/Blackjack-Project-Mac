@@ -10,38 +10,36 @@ export default function Card({ card, isHidden = false }) {
     // Hidden Card (Outline-Only) Logic
     if (isHidden) {
         return (
-            <div className={`w-24 h-32 sm:w-28 sm:h-40 border-2 border-gray-400 rounded-xl shadow-lg m-1 ${dealtAnimationClass}`}>
+            <div className={`w-28 h-40 sm:w-32 sm:h-44 border-2 border-gray-400 rounded-xl shadow-lg m-1 ${dealtAnimationClass}`}>
                 {/* Outline only */}
             </div>
         );
     }
 
-    // Face-Up Card Logic (Absolute Positioning for Corner Alignment)
+    // Face-Up Card Logic
     return (
-        <div className={`w-24 h-32 sm:w-28 sm:h-40 bg-white border border-gray-300 text-slate-800 rounded-xl shadow-lg flex flex-col 
+        <div className={`w-28 h-40 sm:w-32 sm:h-44 bg-white border border-gray-300 text-slate-800 rounded-xl shadow-lg flex flex-col 
             items-center justify-center p-0 m-1 font-mono relative overflow-hidden ${dealtAnimationClass}`}>
 
-            {/* 1. Top-Left Corner (Absolute) */}
+            {/* 1. Top-Left Corner (Rank only) */}
             <div
-                className="absolute top-1 left-2 text-lg leading-none text-center"
+                className="absolute top-2 left-3 text-3xl font-bold"
                 style={{ color: CARD_COLOR(card.suit) }}
             >
-                <p className="font-bold">{card.rank}</p>
-                <p className="text-sm">{card.suit}</p>
+                {card.rank}
             </div>
 
             {/* 2. Center Suit (large) */}
-            <h1 className="text-5xl sm:text-7xl absolute" style={{ color: CARD_COLOR(card.suit) }}>
+            <h1 className="text-6xl sm:text-8xl absolute" style={{ color: CARD_COLOR(card.suit) }}>
                 {card.suit}
             </h1>
 
-            {/* 3. Bottom-Right Corner (Absolute & Rotated) */}
+            {/* 3. Bottom-Right Corner (Rank only & Rotated) */}
             <div
-                className="absolute bottom-1 right-2 text-lg leading-none text-center transform rotate-180"
+                className="absolute bottom-2 right-3 text-3xl font-bold transform rotate-180"
                 style={{ color: CARD_COLOR(card.suit) }}
             >
-                <p className="font-bold">{card.rank}</p>
-                <p className="text-sm">{card.suit}</p>
+                {card.rank}
             </div>
         </div>
     );
