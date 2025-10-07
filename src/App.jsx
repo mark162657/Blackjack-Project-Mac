@@ -489,7 +489,7 @@ function App() {
                     <>
                         <Hand cards={dealerHand} title="Dealer" handValue={dealerValue} isDealer={true} gameOver={gameOver} />
 
-                        <div className="my-4 w-full max-w-md text-center min-h-[80px]">
+                        <div className="my-4 w-full max-w-md text-center min-h-[20px]">
                             {gameOver && result.message && <div className={`p-4 rounded-xl shadow-2xl animate-fade-in-down font-extrabold text-2xl ${result.type.includes('win') || result.type === 'blackjack' ? 'bg-green-500/50 border-green-400/80' : result.type === 'loss' ? 'bg-red-500/50 border-red-400/80' : 'bg-amber-500/50 border-amber-400/80'} border backdrop-blur-md`}>{result.message}</div>}
                             {advisorSuggestion && !gameOver && <div className="mt-4 p-3 bg-blue-900/50 backdrop-blur-md border border-blue-400/50 rounded-lg text-sm text-blue-200 shadow-lg"><span className='font-bold text-blue-100'>Advisor:</span> {advisorSuggestion}</div>}
                             {authMessage.message && authMessage.type === 'error' && <div className={`mt-4 p-4 rounded-lg text-base font-medium bg-red-800/80`}>{authMessage.message}</div>}
@@ -508,8 +508,7 @@ function App() {
                         <Button
                             onClick={handleAdvisorClick}
                             bg_color="advisor"
-                            className="!absolute !w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold top-1/2 right-4 sm:right-6 -translate-y-1/3"
-                        >
+                            className="!absolute !w-10 !h-10 !p-0 !rounded-full !text-lg !font-extrabold top-1 right-2 sm:top-1/2 sm:right-6 sm:-translate-y-1/3"                        >
                             ?
                         </Button>
                     )}
