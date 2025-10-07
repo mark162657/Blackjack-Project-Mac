@@ -293,10 +293,12 @@ function App() {
         const playerValue = calculateHandValue([playerCard1, playerCard2]);
         const dealerValue = calculateHandValue([dealerCard1, dealerCard2]);
 
-        // Check for immediate Blackjack, which ends the hand
-        if (playerValue === 21 || dealerValue === 21) {
-            // Pass chipsAfterBet to make sure final calculation uses the post-bet amount (no race)
-            setTimeout(() => handleGameOver(playerValue, dealerValue, playerValue === 21, dealerValue === 21, chipsAfterBet), 1000);
+        // Check for immediate Blackjack (21 with exactly two cards)
+        const playerHasBlackjack = playerValue === 21 && [playerCard1, playerCard2].length === 2;
+        const dealerHasBlackjack = dealerValue === 21 && [dealerCard1, dealerCard2].length === 2;
+
+        if (playerHasBlackjack || dealerHasBlackjack) {
+            setTimeout(() => handleGameOver(playerValue, dealerValue, playerHasBlackjack, dealerHasBlackjack, chipsAfterBet), 1000);
         }
     };
 
@@ -372,6 +374,9 @@ function App() {
         let baseChips = (typeof chipsAfterBet === 'number') ? chipsAfterBet : chips;
         let finalChips = baseChips;
         let resultType, message;
+
+        // Debugging log (optional, remove in production)
+        console.log(`Player: ${playerValue}, Dealer: ${dealerValue}, PlayerBJ: ${playerHasBlackjack}, DealerBJ: ${dealerHasBlackjack}`);
 
         // Determine game outcome based on hand values
         if (playerHasBlackjack && dealerHasBlackjack) {
